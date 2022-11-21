@@ -5,14 +5,9 @@ import (
 	"fmt"
 )
 
-type FTask struct {
-	seed     Byte[]
-	energy   int
-	index    int 
-}
-
 // A Max Heap PriorityQueue, inspired by: https://pkg.go.dev/container/heap#example-package-PriorityQueue
-type PriorityQueue []*Item
+
+type PriorityQueue []*FTask
 
 func (pq PriorityQueue) Len() int { return len(pq) }
 

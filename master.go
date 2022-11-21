@@ -1,34 +1,43 @@
-package master
+package hopper
 
 import (
     "fmt"
     "log"
     "net"
     "plugin"
+    "strconv"
     "os"
     "net/rpc"
     "net/http"
+    "hash/maphash"
 )
-
-type Crash struct {
-
-}
 
 type Hopper struct {
     // Generation N factor
     GenN     int
-    // seed map, used as set for deduping seeds
-    seeds    map[string]interface{}
+    // seed map, used as set for deduping seeds and keeping track of Crashes
+    seeds    map[uint64]interface{}
+    // cov map, used as set for deduping same coverage seeds
+    covHash  map[uint64]interface{}
     // Coverage per number of nodes
-    cov         []*Coverage
+    cov      []*Coverage
     // Port to host RPC
     port     string
+    // PQ of Fuzz tasks (seeds)
+    pq       []*FTask
+    // Seed for hashing coverage
+    hashSeed uint64
 }
 
-func (h *Hopper) RPCServer(){
+
+func (h *Hopper) GetFuzzTask(){
+    
+}
+
+func (h *Hopper) rpcServer(){
     rpc.Register(h)
     rpc.HandleHTTP()
-    l, e := net.Listen("tcp", ":"+h.port)
+    l, e := net.Listen("tcp", ":"+strconv.Itoa(h.port))
     if e != nil {                              
         log.Fatal("listen error:", e)
     }                                   
@@ -36,9 +45,9 @@ func (h *Hopper) RPCServer(){
 }
 
 func main() {
-    fmt.Fprintf(os.Stderr, "hopper: hopper -M xxx.so\n")
+    fmt.Fprintf(os.Stderr, "Hopper: hopper -M xxx.so\n")
     GenN := flag.Int("N", 1000, "Number of mutations per generation")
-    port := flag.String("P", "6969", "Port to use, defaults to :6969")
+    port := flag.Int("P", 6969, "Port to use, defaults to :6969")
     //thread_mode := flag.Bool("T", false, "Port to use, defaults to :6969")
     
     h := Hopper{
@@ -46,8 +55,9 @@ func main() {
         seeds:      make(map[string]interface{}),
         crashes:    make([]Crash, 0),
         port:       port,
+        hashSeed:   maphash.NewSeed(),
     }
 
-    h.RPCServer()
+    h.rpcServer()
 }
 

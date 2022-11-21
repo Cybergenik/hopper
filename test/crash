@@ -1,0 +1,51 @@
+=================================================================
+==49400==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x7f5bc390002f at pc 0x5652cbaeadd5 bp 0x7ffea8f85450 sp 0x7ffea8f84c18
+WRITE of size 19 at 0x7f5bc390002f thread T0
+    #0 0x5652cbaeadd4 in __interceptor_strcpy (/home/luciano/fun/hopper/test/a.out+0x90dd4) (BuildId: 432244935704d282d2d131247530cb92bb1b08eb)
+    #1 0x5652cbb3d665 in parse(char*) /home/luciano/fun/hopper/test/getdomain.c:26:13
+    #2 0x5652cbb3d7eb in main /home/luciano/fun/hopper/test/getdomain.c:43:37
+    #3 0x7f5bc57b5189 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #4 0x7f5bc57b5244 in __libc_start_main csu/../csu/libc-start.c:381:3
+    #5 0x5652cba7b2e0 in _start (/home/luciano/fun/hopper/test/a.out+0x212e0) (BuildId: 432244935704d282d2d131247530cb92bb1b08eb)
+
+Address 0x7f5bc390002f is located in stack of thread T0 at offset 47 in frame
+    #0 0x5652cbb3d4ef in parse(char*) /home/luciano/fun/hopper/test/getdomain.c:9
+
+  This frame has 1 object(s):
+    [32, 47) 'buffer' (line 11) <== Memory access at offset 47 overflows this variable
+HINT: this may be a false positive if your program uses some custom stack unwind mechanism, swapcontext or vfork
+      (longjmp and C++ exceptions *are* supported)
+SUMMARY: AddressSanitizer: stack-buffer-overflow (/home/luciano/fun/hopper/test/a.out+0x90dd4) (BuildId: 432244935704d282d2d131247530cb92bb1b08eb) in __interceptor_strcpy
+Shadow bytes around the buggy address:
+  0x0febf8717fb0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0febf8717fc0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0febf8717fd0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0febf8717fe0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0febf8717ff0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x0febf8718000: f1 f1 f1 f1 00[07]f3 f3 00 00 00 00 00 00 00 00
+  0x0febf8718010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0febf8718020: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0febf8718030: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0febf8718040: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0febf8718050: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==49400==ABORTING
+SanitizerCoverage: ./a.out.49400.sancov: 5 PCs written
