@@ -24,6 +24,7 @@ type HopperNode struct {
     stdin       bool
     master      string
     crashN      int
+    conn        *rpc.Client
 }
 
 func (n *HopperNode) getFTask() c.FTask {
@@ -158,6 +159,12 @@ func Node(id int, target string, args string, env string, stdin bool, master str
 		log.Fatal(err)
 	}
     n.env = append(n.env, "ASAN_OPTIONS=coverage=1")
+    c, err := rpc.DialHTTP("tcp", n.master)
+    if err != nil {                 
+        log.Fatal("dialing:", err)
+    }
+    n.conn = c
+    defer n.conn.Close()       
     //Infinite loop, request Task -> do Task
 	for {
 		ftask := n.getFTask()
@@ -165,7 +172,7 @@ func Node(id int, target string, args string, env string, stdin bool, master str
             ftask = n.getFTask()
         }
 		if ftask.Die {
-			os.Exit(0)
+            return
 		}	
         //fmt.Printf("Fuzzing: %s\n", ftask.Seed)
         n.fuzz(ftask)
@@ -206,7 +213,6 @@ func (n *HopperNode) call(rpcname string, args interface{}, reply interface{}) b
     if err != nil {                 
         log.Fatal("dialing:", err)
     }
-    defer c.Close()       
                                                             
     err = c.Call(rpcname, args, reply)
     if err != nil {                    
