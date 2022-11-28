@@ -112,6 +112,20 @@ func (h *Hopper) GetFTask(args *c.FTaskArgs, task *c.FTask) error {
 func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error {
     h.mu.Lock()
     defer h.mu.Unlock()
+    // None unique or invalid seed
+    if _, ok := h.seeds[update.Id]; !ok && h.seeds[update.Id].NodeId != -1 {
+        return nil
+    }
+    // Retry Failed seeds
+    if !update.Ok {
+        go func(seed []byte, seedHash uint64){
+            h.qChan<-c.FTask{
+                Id:       seedHash,
+                Seed:     seed,
+            }
+        }(h.seeds[update.Id].Bytes, update.Id)
+        return nil
+    }
     h.its++
     h.seeds[update.Id] = c.Seed{
         NodeId:   update.NodeId,
@@ -138,7 +152,7 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
 }
 
 func (h *Hopper) energyMutate(seed c.Seed){
-    //Baseline .01% of available capacity
+    //Baseline .01% of available queue capacity
     baseline := int(float32(cap(h.qChan) - len(h.qChan)) * float32(.001))
     mutN := 0
     covDiff := seed.CovEdges - h.maxCov.CovEdges
@@ -171,9 +185,18 @@ func (h *Hopper) addSeed(seed []byte) bool{
         CovHash:  0,
         CovEdges: -1,
     }
-    h.qChan<-c.FTask{
-        Id:       seedHash,
-        Seed:     seed,
+    if len(h.qChan) == cap(h.qChan){
+        go func(){
+            h.qChan<-c.FTask{
+                Id:       seedHash,
+                Seed:     seed,
+            }
+        }()
+    } else {
+        h.qChan<-c.FTask{
+            Id:       seedHash,
+            Seed:     seed,
+        }
     }
     return true
 }

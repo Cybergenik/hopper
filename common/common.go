@@ -48,6 +48,7 @@ type UpdateReply struct {
 
 type UpdateFTask struct {
     NodeId   int
+    Ok       bool
     Id       uint64
     CovHash  uint64
     CovEdges int

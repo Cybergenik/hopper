@@ -8,7 +8,6 @@ import (
     "flag"
     "strings"
     "strconv"
-    //"plugin"
     "path/filepath"
     "net/rpc"
     "bytes"
@@ -82,6 +81,10 @@ func (n *HopperNode) fuzz(t c.FTask) {
             " ",
         )
     }
+    update := c.UpdateFTask{
+        NodeId: n.id,
+        Id:     t.Id,
+    }
     cmd := exec.Command(n.target, fuzzCommand...)
     cmd.Env = append(os.Environ(), n.env...)
     // Gather err output
@@ -93,16 +96,14 @@ func (n *HopperNode) fuzz(t c.FTask) {
     }
     if err := cmd.Start(); err != nil{
         log.Println(err)
+        update.Ok = false
+        go n.updateFTask(update)
         return
     }
     if n.stdin {
         stdin.Write(t.Seed)
     }
     err := cmd.Wait()
-    update := c.UpdateFTask{
-        NodeId: n.id,
-        Id:     t.Id,
-    }
     sancov_file := fmt.Sprintf("%s.%v.sancov",
         filepath.Base(n.target),
         cmd.Process.Pid,
@@ -123,6 +124,8 @@ func (n *HopperNode) fuzz(t c.FTask) {
     cov_cmd.Stdout = &out
     if err := cov_cmd.Run(); err != nil {
         log.Println(err)
+        update.Ok = false
+        go n.updateFTask(update)
         return
     }
     go os.Remove(sancov_file)
@@ -135,6 +138,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
         cov_s = append(cov_s, fmt.Sprintf("%s", edge.Value()))
     }
     update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
+    update.Ok = true
     go n.updateFTask(update)
 }
 

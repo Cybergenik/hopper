@@ -52,7 +52,8 @@ func tickStats() tea.Cmd {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tickStats()
+    cmds := []tea.Cmd{tea.ClearScreen, tickStats()}
+	return tea.Batch(cmds...)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

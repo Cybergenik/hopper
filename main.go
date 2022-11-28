@@ -17,6 +17,31 @@ func printHelp() {
 	fmt.Printf("Hopper Master: go run master.go -I input/ -H=2 -P=6969 -M mut.so\n")
 }
 
+func initTUI(master *m.Hopper) {
+	tui_model := tui.InitModel(master)
+	p := tea.NewProgram(tui_model)
+	if _, err := p.Run(); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func readCorpus(path string) [][]byte {
+	corpus := [][]byte{}
+	files, err := os.ReadDir(path)
+	if err != nil {
+		log.Fatalf("Cannot open input corpus dir: %v", err)
+	}
+	for _, file := range files {
+		seed, err := os.ReadFile(path + "/" + file.Name())
+		if err != nil {
+			log.Fatalf("Cannot open input in corpus: %v %v", file.Name(), err)
+		}
+		corpus = append(corpus, seed)
+	}
+    return corpus
+}
+
 func main() {
 	help := flag.Bool("help", false, "help menu")
 	input := flag.String("I", "", "path to input corpus, directory containing files each being a seed")
@@ -36,26 +61,10 @@ func main() {
 	if Err != "" {
 		log.Fatal(Err)
 	}
-
-	corpus := [][]byte{}
-	files, err := os.ReadDir(*input)
-	if err != nil {
-		log.Fatalf("Cannot open input corpus dir: %v", err)
-	}
-	for _, file := range files {
-		seed, err := os.ReadFile(*input + "/" + file.Name())
-		if err != nil {
-			log.Fatalf("Cannot open input in corpus: %v %v", file.Name(), err)
-		}
-		corpus = append(corpus, seed)
-	}
-	master := m.InitHopper(*havoc, *port, m.Mutator, corpus)
+    //Parse corpus seeds
+    corpus := readCorpus(*input)
 	//Init TUI loop
-	tui_model := tui.InitModel(master)
-	p := tea.NewProgram(tui_model)
-	if _, err := p.Run(); err != nil {
-		log.Fatal(err)
-	}
+	initTUI(m.InitHopper(*havoc, *port, m.Mutator, corpus))
 }
 
 func loadMutEngine(filename string) func([]byte, int) []byte {
