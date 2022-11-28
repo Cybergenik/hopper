@@ -41,28 +41,24 @@ func main(){
 
 func Mutator(b []byte, havoc int) []byte {
     rand.Seed(time.Now().UnixNano())
-    bytes := b[:]
+    bytes := append([]byte{}, b...)
     for i:=0; i<havoc;i++{
         switch rand.Intn(N){
         case MUT:
-            fmt.Print("MUT: ")
             i := rand.Intn(len(bytes))
             rval := make([]byte, 1)
             rand.Read(rval)
             bytes[i] = rval[0]
         case DEL:
-            fmt.Print("DEL: ")
             i := rand.Intn(len(bytes))
             bytes = append(bytes[:i], bytes[i+1:]...)
         case ADD:
-            fmt.Print("ADD: ")
             i := rand.Intn(len(bytes))
             rval := make([]byte, 1)
             rand.Read(rval)
             bytes = append(bytes[:i+1], bytes[i:]...)
             bytes[i] = rval[0]
         case SWP:
-            fmt.Print("SWP: ")
             i := rand.Intn(len(bytes))
             j := rand.Intn(len(bytes))
             for j == i {
@@ -70,11 +66,9 @@ func Mutator(b []byte, havoc int) []byte {
             }
             bytes[i], bytes[j] = bytes[j], bytes[i]
         case FLP:
-            fmt.Print("FLP: ")
             i := rand.Intn(len(bytes))
             bytes[i] = bytes[i]^255
         case REV:
-            fmt.Print("REV: ")
             i := rand.Intn(len(bytes))
             bytes[i] = bits.Reverse8(bytes[i])
         }

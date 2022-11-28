@@ -1,9 +1,21 @@
 package common
 
-import "hash/maphash"
+import (
+    "crypto/md5"
+    "encoding/binary"
+)
 
-func Hash(b []byte, seed maphash.Seed) uint64{
-    return maphash.Bytes(seed, b)
+func Hash(b []byte) uint64{
+    sum := md5.Sum(b)
+    return binary.BigEndian.Uint64([]byte(sum[:]))
+}
+
+type Seed struct {
+    NodeId      int
+    Bytes       []byte
+    CovHash     uint64
+    CovEdges    int
+    Crash       bool
 }
 
 type Stats struct {
@@ -18,13 +30,20 @@ type Stats struct {
 type FTask struct {
     Id       uint64
 	Seed     []byte
-    HashSeed maphash.Seed
     Die      bool
+}
+
+type FTaskArgs struct {
+
 }
 
 type Coverage struct {
     NodeId   int
     Type     string
+}
+
+type UpdateReply struct {
+
 }
 
 type UpdateFTask struct {
