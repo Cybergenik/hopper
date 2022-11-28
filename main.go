@@ -9,6 +9,8 @@ import (
     "plugin"
     //"path/filepath"
     m "github.com/Cybergenik/hopper/master"
+    tui "github.com/Cybergenik/hopper/tui"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 //TODO: change this, it's trash...
@@ -57,16 +59,21 @@ func main() {
     fmt.Println("Spawning Hopper...")
     master := m.InitHopper(*havoc, *port, m.Mutator, corpus)
     //Init TUI loop
-    for {
-        var key string
-        fmt.Scanf("%s", &key)
-        if key == "q" {
-            fmt.Println("Exiting Hopper...")
-            master.Kill()
-            time.Sleep(2*time.Second)
-            return
+    tui_model := tui.InitModel()
+	p := tea.NewProgram(tui_model)
+    go func(tuim tui.Model, hm Hopper){
+        for {
+            time.Sleep(1*time.Second)
+            tuim.Update(tui.StatsMsg{
+                Stats: hm.Stats(),
+            })
         }
     }
+	if err := p.Run(); err != nil {
+		log.Fatal(err)
+	}
+    master.Kill()
+    time.Sleep(2*time.Second)
 }
 
 func loadMutEngine(filename string) (func([]byte, int) []byte) {

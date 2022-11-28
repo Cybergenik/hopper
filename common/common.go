@@ -6,6 +6,15 @@ func Hash(b []byte, seed maphash.Seed) uint64{
     return maphash.Bytes(seed, b)
 }
 
+type Stats struct {
+    Its     int
+    Port    int
+    Havoc   int
+    CrashN  int
+    SeedsN  int
+    MaxSeed Seed
+}
+
 type FTask struct {
     Id       uint64
 	Seed     []byte

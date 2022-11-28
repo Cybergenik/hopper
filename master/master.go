@@ -12,7 +12,7 @@ import (
     c "github.com/Cybergenik/hopper/common"
 )
 
-type seedInfo struct {
+type Seed struct {
     nodeId      int
     bytes       []byte
     covHash     uint64
@@ -28,13 +28,13 @@ type Hopper struct {
     // Mutation function
     mutf     func ([]byte, int) []byte
     // seed map, used as set for deduping seeds and keeping track of Crashes
-    seeds    map[uint64]seedInfo
+    seeds    map[uint64]Seed
     // cov map, used as set for deduping same coverage seeds
     covHash  map[uint64]interface{}
     // Coverage per number of nodes
     crashes  map[string][]seedInfo
     // Max Coverage in terms of edges
-    maxCov   int
+    maxCov   Seed
     // Port to host RPC
     port     int
     // Seed for hashing coverage
@@ -43,6 +43,10 @@ type Hopper struct {
     qChan    chan c.FTask
     // Keeps track of whether Hopper has been killed
     dead     int32
+    //Stats
+    its      int
+    crashN   int
+    seedsN   int
 }
 
 func (h *Hopper) Kill() {
@@ -52,18 +56,31 @@ func (h *Hopper) Kill() {
     h.mu.Unlock()
 }
 
+func (h *Hopper) Stats() c.Stats{
+    h.mu.Lock()
+    defer h.mu.Unlock()
+    return c.Stats{
+        Its:     h.its,
+        Port:    h.port,
+        Havoc:   h.havoc,
+        CrashN:  h.crashN,
+        SeedsN:  h.seedsN,
+        MaxSeed: h.maxCov,
+    }
+}
+
 func (h *Hopper) killed() bool {
 	z := atomic.LoadInt32(&h.dead)
 	return z == 1
 }
 
-func (h *Hopper) energyMutate(seed seedInfo){
+func (h *Hopper) energyMutate(seed Seed){
     mutN := 10
-    covDiff := seed.covEdges - h.maxCov
+    covDiff := seed.covEdges - h.maxCov.covEdges
     if covDiff >= 0 {
         mutN *= covDiff+1
     } else {
-        mutN = mutN*(seed.covEdges/h.maxCov)
+        mutN = mutN*(seed.covEdges/h.maxCov.covEdges)
     }
     if seed.crash {
         mutN += 10
@@ -85,14 +102,19 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *interface{}) error {
     h.mu.Lock()
     defer h.mu.Unlock()
     if val, ok:= h.seeds[update.Id]; ok && h.seeds[update.Id].nodeId == -1 {
+        h.its++
         val.nodeId = update.NodeId
         val.covHash = update.CovHash
         val.covEdges = update.CovEdges
         h.seeds[update.Id] = val
+        if val.CovEdges > h.maxCov.covEdges{
+            h.maxCov = val
+        }
         // Dedup based on similar Coverage hash
         if _, ok := h.covHash[update.CovHash]; !ok{
             h.covHash[update.CovHash] = nil
             if (update.Crash != "") {
+                h.crashN++
                 val := h.seeds[update.Id]
                 val.crash = true
                 h.seeds[update.Id] = val
@@ -109,6 +131,7 @@ func (h *Hopper) addSeed(seed []byte){
     if _, ok := h.seeds[seedHash]; !ok {
         return
     }
+    h.seedsN++
     h.seeds[seedHash] = seedInfo{
         nodeId:   -1,
         bytes:    seed,
@@ -139,7 +162,7 @@ func InitHopper(havocN int, port int, mutf func([]byte, int) []byte, corpus [][]
         seeds:    make(map[uint64]seedInfo),
         covHash:  make(map[uint64]interface{}),
         crashes:  make(map[string][]seedInfo),
-        maxCov:   0,
+        maxCov:   Seed{},
         port:     port,
         hashSeed: maphash.MakeSeed(),
         //TODO: consider using circular buffer: container/ring
