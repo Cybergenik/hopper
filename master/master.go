@@ -137,6 +137,7 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
     if update.CovEdges > h.maxCov.CovEdges{
         h.maxCov = h.seeds[update.Id]
     }
+    go h.energyMutate(h.seeds[update.Id], h.maxCov.CovEdges)
     if (update.Crash != "") {
         h.crashN++
     }
@@ -147,35 +148,34 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
             h.crashes[update.Crash] = append(h.crashes[update.Crash], h.seeds[update.Id])
         }
     }
-    h.energyMutate(h.seeds[update.Id])
     return nil
 }
 
-func (h *Hopper) energyMutate(seed c.Seed){
+func (h *Hopper) energyMutate(seed c.Seed, maxEdges int){
     //Baseline .01% of available queue capacity
     baseline := int(float32(cap(h.qChan) - len(h.qChan)) * float32(.001))
     mutN := 0
-    covDiff := seed.CovEdges - h.maxCov.CovEdges
+    covDiff := seed.CovEdges - maxEdges
     if covDiff >= 0 {
         mutN = baseline*(covDiff+1)
     } else {
-        mutN = int(float32(baseline)*float32(seed.CovEdges/(h.maxCov.CovEdges+1)))
+        mutN = int(float32(baseline)*float32(seed.CovEdges/(maxEdges+1)))
     }
     if seed.Crash {
         mutN += baseline
     }
     for i:=0;i<mutN;i++{
-        mutSeed := h.mutf(seed.Bytes, h.havoc)
-        for ok := h.addSeed(mutSeed); !ok; {
-            mutSeed = h.mutf(seed.Bytes, h.havoc)
-            ok = h.addSeed(mutSeed)
+        for ok := h.addSeed(h.mutf(seed.Bytes, h.havoc)); !ok; {
+            ok = h.addSeed(h.mutf(seed.Bytes, h.havoc))
         }
     }
 }
 
 func (h *Hopper) addSeed(seed []byte) bool{
     seedHash := c.Hash(seed)
+    h.mu.Lock()
     if _, ok := h.seeds[seedHash]; ok {
+        h.mu.Unlock()
         return false
     }
     h.seedsN++
@@ -185,6 +185,7 @@ func (h *Hopper) addSeed(seed []byte) bool{
         CovHash:  0,
         CovEdges: -1,
     }
+    h.mu.Unlock()
     if len(h.qChan) == cap(h.qChan){
         go func(){
             h.qChan<-c.FTask{

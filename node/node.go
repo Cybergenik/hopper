@@ -167,7 +167,7 @@ func Node(id int, target string, args string, env string, stdin bool, master str
 		if ftask.Die {
 			os.Exit(0)
 		}	
-        fmt.Printf("Fuzzing: %s\n", ftask.Seed)
+        //fmt.Printf("Fuzzing: %s\n", ftask.Seed)
         n.fuzz(ftask)
     }
 }
