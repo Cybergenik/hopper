@@ -134,19 +134,19 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
         Bytes:    h.seeds[update.Id].Bytes,    
         Crash:    update.Crash != "",
     }
-    if update.CovEdges > h.maxCov.CovEdges{
-        h.maxCov = h.seeds[update.Id]
-    }
-    go h.energyMutate(h.seeds[update.Id], h.maxCov.CovEdges)
-    if (update.Crash != "") {
-        h.crashN++
-    }
     // Dedup based on similar Coverage hash
     if _, ok := h.covHash[update.CovHash]; !ok{
         h.covHash[update.CovHash] = nil
         if (update.Crash != "") {
             h.crashes[update.Crash] = append(h.crashes[update.Crash], h.seeds[update.Id])
         }
+    }
+    go h.energyMutate(h.seeds[update.Id], h.maxCov.CovEdges)
+    if update.CovEdges > h.maxCov.CovEdges{
+        h.maxCov = h.seeds[update.Id]
+    }
+    if (update.Crash != "") {
+        h.crashN++
     }
     return nil
 }
