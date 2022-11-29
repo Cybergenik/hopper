@@ -55,6 +55,9 @@ Seeds:          %v
 Fuzz Instances: %v
 Max Edges:      %v
 Crashes:        %v
+UniqueCrashes:  %v
+UniquePaths:    %v
+Nodes:		%v
 
 %s
 `
@@ -79,6 +82,9 @@ func (h *Hopper) Kill() {
             h.its,
             h.maxCov.CovEdges,
             h.crashN,
+	    len(h.crashes),
+	    len(h.coverage),
+	    len(h.nodes),
             crashes,
         )
         os.WriteFile("hopper.report", []byte(report), 0666)

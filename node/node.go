@@ -30,14 +30,15 @@ type HopperNode struct {
     conn        *rpc.Client
 }
 
-func (n *HopperNode) getFTask() c.FTask {
+func (n *HopperNode) getFTask() (c.FTask, bool) {
     args := c.FTaskArgs{}
 	t := c.FTask{}
+
 	if ok := n.call("Hopper.GetFTask", &args, &t); !ok {
 		log.Println("Error Getting FTask!")
-        t.Id = 0
+		return t, ok
 	}
-	return t
+	return t, true
 }
 
 func (n *HopperNode) updateFTask(ut c.UpdateFTask) {
@@ -69,13 +70,13 @@ func (n *HopperNode) persistCrash(seed []byte, asan bytes.Buffer, crashN int) {
     }
 }
 
-func (n *HopperNode) getCov(cov_cmd *exec.Cmd) ([]string, bool){
+func (n *HopperNode) getCov(cov_cmd *exec.Cmd, sancov_file string) ([]string, bool){
     var out bytes.Buffer
     cov_cmd.Stdout = &out
     if err := cov_cmd.Run(); err != nil {
         return nil, false
     }
-    os.Remove(sancov_file)
+    go os.Remove(sancov_file)
     // Coverage tree parsing
     covered := gjson.Get(out.String(), "covered-points").Array()
     cov_s := []string{}
@@ -118,7 +119,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
     if err := cmd.Start(); err != nil{
         log.Println(err)
         update.Ok = false
-        n.updateFTask(update)
+        go n.updateFTask(update)
         return
     }
     if n.stdin {
@@ -132,7 +133,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
     //Crash Detected
     if err != nil {
         update.Crash = parseAsan(errOut.String())
-        n.persistCrash(t.Seed, errOut, n.crashN)
+        go n.persistCrash(t.Seed, errOut, n.crashN)
         n.crashN++
     }
     cov_cmd := exec.Command(SANCOV,
@@ -141,14 +142,14 @@ func (n *HopperNode) fuzz(t c.FTask) {
         n.target,
     )
     //Generate Coverage data
-    cov_s, ok := n.getCov(cov_cmd)
+    cov_s, ok := n.getCov(cov_cmd, sancov_file)
 	update.Ok = ok
 	if !ok {
-		n.updateFTask(update)
+		go n.updateFTask(update)
 	} else {
 		update.CovEdges = len(cov_s)
 		update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
-		n.updateFTask(update)
+		go n.updateFTask(update)
 	}
 }
 
@@ -176,15 +177,12 @@ func Node(id int, target string, args string, env string, stdin bool, master str
     defer n.conn.Close()       
     //Infinite loop, request Task -> do Task
 	for {
-		ftask := n.getFTask()
-        for ftask.Id == 0 {
-            ftask = n.getFTask()
-        }
-		if ftask.Die {
-            return
-		}	
+		ftask, ok := n.getFTask()
+		if !ok || ftask.Die {
+		    return
+		}
         //fmt.Printf("Fuzzing: %s\n", ftask.Seed)
-        go n.fuzz(ftask)
+        n.fuzz(ftask)
     }
 }
 
@@ -217,10 +215,7 @@ func main() {
 }
 
 func (n *HopperNode) call(rpcname string, args interface{}, reply interface{}) bool {
-    if err != nil {                 
-        log.Fatal("dialing:", err)
-    }
-    err = n.conn.Call(rpcname, args, reply)
+    err := n.conn.Call(rpcname, args, reply)
     if err != nil {                    
         log.Print(err)
         return false
