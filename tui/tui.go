@@ -87,6 +87,9 @@ func (m Model) View() string {
     %s      %s    %s
     %s      %s    %s
 
+    %s      %s    %s
+    %s      %s    %s
+
         %s
         `,
 		labelstyle.Width(50).Render(HOPPER),
@@ -94,20 +97,28 @@ func (m Model) View() string {
 		datastyle.Width(30).Render("Master running on port: "+strconv.Itoa(m.stats.Port)),
 		// Fields
 		labelstyle.Width(6).Render("Havoc:"),
-		labelstyle.Width(10).Render("Its speed:"),
+		labelstyle.Width(15).Render("Its speed:"),
 		labelstyle.Width(6).Render("Edges:"),
 		// Data
 		datastyle.Width(6).Render(strconv.Itoa(m.stats.Havoc)),
-		datastyle.Width(10).Render(strconv.Itoa(m.stats.Its-m.oldStats.Its)+"/s"),
+		datastyle.Width(15).Render(strconv.Itoa(m.stats.Its-m.oldStats.Its)+"/s"),
 		datastyle.Width(6).Render(strconv.Itoa(m.stats.MaxSeed.CovEdges)),
 		// Fields
 		labelstyle.Width(6).Render("Seeds:"),
-		labelstyle.Width(10).Render("Crashes:"),
+		labelstyle.Width(15).Render("Crashes:"),
 		labelstyle.Width(15).Render("Fuzz Instances:"),
 		// Data
 		datastyle.Width(6).Render(strconv.Itoa(m.stats.SeedsN)),
-		datastyle.Width(10).Render(strconv.Itoa(m.stats.CrashN)),
+		datastyle.Width(15).Render(strconv.Itoa(m.stats.CrashN)),
 		datastyle.Width(15).Render(strconv.Itoa(m.stats.Its)),
+		// Fields
+		labelstyle.Width(6).Render("Nodes:"),
+		labelstyle.Width(15).Render("Unique Crashes:"),
+		labelstyle.Width(13).Render("Unique Paths:"),
+		// Data
+		datastyle.Width(6).Render(strconv.Itoa(m.stats.Nodes)),
+		datastyle.Width(15).Render(strconv.Itoa(m.stats.UniqueCrashes)),
+		datastyle.Width(13).Render(strconv.Itoa(m.stats.UniquePaths)),
 		// Quit
 		datastyle.Width(30).Render("Press Esc or Ctrl+C to quit"),
 	)

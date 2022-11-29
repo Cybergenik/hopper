@@ -15,6 +15,9 @@ import (
     c "github.com/Cybergenik/hopper/common"
 )
 
+//Debian unstable: "sancov-15"
+const SANCOV = "sancov"
+
 type HopperNode struct {
     name        string
     id          int
@@ -66,6 +69,23 @@ func (n *HopperNode) persistCrash(seed []byte, asan bytes.Buffer, crashN int) {
     }
 }
 
+func (n *HopperNode) getCov(cov_cmd *exec.Cmd) ([]string, bool){
+    var out bytes.Buffer
+    cov_cmd.Stdout = &out
+    if err := cov_cmd.Run(); err != nil {
+        return nil, false
+    }
+    os.Remove(sancov_file)
+    // Coverage tree parsing
+    covered := gjson.Get(out.String(), "covered-points").Array()
+    cov_s := []string{}
+    for _, v := range covered {
+        edge := gjson.Get(out.String(), fmt.Sprintf("point-symbol-info.*.*.%v", v.Value()))
+        cov_s = append(cov_s, fmt.Sprintf("%s", edge.Value()))
+    }
+	return cov_s, true
+}
+
 func (n *HopperNode) fuzz(t c.FTask) {
     //Run seed
     var fuzzCommand []string
@@ -98,7 +118,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
     if err := cmd.Start(); err != nil{
         log.Println(err)
         update.Ok = false
-        go n.updateFTask(update)
+        n.updateFTask(update)
         return
     }
     if n.stdin {
@@ -112,35 +132,24 @@ func (n *HopperNode) fuzz(t c.FTask) {
     //Crash Detected
     if err != nil {
         update.Crash = parseAsan(errOut.String())
-        go n.persistCrash(t.Seed, errOut, n.crashN)
+        n.persistCrash(t.Seed, errOut, n.crashN)
         n.crashN++
     }
-    //Generate Coverage data
-    cov_cmd := exec.Command("sancov-15",
+    cov_cmd := exec.Command(SANCOV,
         "--symbolize",
         sancov_file,
         n.target,
     )
-    var out bytes.Buffer
-    cov_cmd.Stdout = &out
-    if err := cov_cmd.Run(); err != nil {
-        log.Println(err)
-        update.Ok = false
-        go n.updateFTask(update)
-        return
-    }
-    go os.Remove(sancov_file)
-    // Coverage tree parsing
-    covered := gjson.Get(out.String(), "covered-points").Array()
-    update.CovEdges = len(covered)
-    cov_s := []string{}
-    for _, v := range covered {
-        edge := gjson.Get(out.String(), fmt.Sprintf("point-symbol-info.*.*.%v", v.Value()))
-        cov_s = append(cov_s, fmt.Sprintf("%s", edge.Value()))
-    }
-    update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
-    update.Ok = true
-    go n.updateFTask(update)
+    //Generate Coverage data
+    cov_s, ok := n.getCov(cov_cmd)
+	update.Ok = ok
+	if !ok {
+		n.updateFTask(update)
+	} else {
+		update.CovEdges = len(cov_s)
+		update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
+		n.updateFTask(update)
+	}
 }
 
 func Node(id int, target string, args string, env string, stdin bool, master string) {
@@ -175,7 +184,7 @@ func Node(id int, target string, args string, env string, stdin bool, master str
             return
 		}	
         //fmt.Printf("Fuzzing: %s\n", ftask.Seed)
-        n.fuzz(ftask)
+        go n.fuzz(ftask)
     }
 }
 
@@ -203,18 +212,15 @@ func main() {
         log.Fatal(err)
     }
     fmt.Printf("Starting Node: %v\n", *id)
-    //fmt.Printf("Args: %v\n", *args)
     masterNode := *master+":"+strconv.Itoa(*port)
     Node(*id, *target, *args, *env, *stdin, masterNode)
 }
 
 func (n *HopperNode) call(rpcname string, args interface{}, reply interface{}) bool {
-    c, err := rpc.DialHTTP("tcp", n.master)
     if err != nil {                 
         log.Fatal("dialing:", err)
     }
-                                                            
-    err = c.Call(rpcname, args, reply)
+    err = n.conn.Call(rpcname, args, reply)
     if err != nil {                    
         log.Print(err)
         return false
