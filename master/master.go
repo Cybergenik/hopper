@@ -10,6 +10,7 @@ import (
     "net/rpc"
     "net/http"
     "sync/atomic"
+
     c "github.com/Cybergenik/hopper/common"
 )
 
@@ -34,8 +35,8 @@ type Hopper struct {
     qChan    chan c.FTask
     // Keeps track of whether Hopper has been killed
     dead     int32
-	// Node IDs
-	nodes	 map[int]interface{}
+    // Node IDs
+    nodes    map[int]interface{}
     //Stats
     its      int
     crashN   int
@@ -57,14 +58,14 @@ Max Edges:      %v
 Crashes:        %v
 UniqueCrashes:  %v
 UniquePaths:    %v
-Nodes:		%v
+Nodes:      %v
 
 %s
 `
 )
 
 func (h *Hopper) Kill() {
-	atomic.StoreInt32(&h.dead, 1)
+    atomic.StoreInt32(&h.dead, 1)
     h.mu.Lock()
     if h.crashN > 0{
         crashes := "Crashes:\n"
@@ -82,9 +83,9 @@ func (h *Hopper) Kill() {
             h.its,
             h.maxCov.CovEdges,
             h.crashN,
-	    len(h.crashes),
-	    len(h.coverage),
-	    len(h.nodes),
+            len(h.crashes),
+            len(h.coverage),
+            len(h.nodes),
             crashes,
         )
         os.WriteFile("hopper.report", []byte(report), 0666)
@@ -96,21 +97,21 @@ func (h *Hopper) Stats() c.Stats{
     h.mu.Lock()
     defer h.mu.Unlock()
     return c.Stats{
-        Its:		   h.its,
-        Port:    	   h.port,
-        Havoc:   	   h.havoc,
-        CrashN:  	   h.crashN,
-        SeedsN:  	   h.seedsN,
-        MaxSeed: 	   h.maxCov,
-		UniqueCrashes: len(h.crashes),
-		UniquePaths:   len(h.coverage),
-		Nodes:		   len(h.nodes),
+        Its:           h.its,
+        Port:          h.port,
+        Havoc:         h.havoc,
+        CrashN:        h.crashN,
+        SeedsN:        h.seedsN,
+        MaxSeed:       h.maxCov,
+        UniqueCrashes: len(h.crashes),
+        UniquePaths:   len(h.coverage),
+        Nodes:         len(h.nodes),
     }
 }
 
 func (h *Hopper) killed() bool {
-	z := atomic.LoadInt32(&h.dead)
-	return z == 1
+    z := atomic.LoadInt32(&h.dead)
+    return z == 1
 }
 
 func (h *Hopper) GetFTask(args *c.FTaskArgs, task *c.FTask) error {
@@ -123,7 +124,7 @@ func (h *Hopper) GetFTask(args *c.FTaskArgs, task *c.FTask) error {
 func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error {
     h.mu.Lock()
     defer h.mu.Unlock()
-	h.nodes[update.NodeId] = nil
+    h.nodes[update.NodeId] = nil
     // None unique or invalid seed
     if _, ok := h.seeds[update.Id]; !ok && h.seeds[update.Id].NodeId != -1 {
         return nil
@@ -217,10 +218,10 @@ func (h *Hopper) addSeed(seed []byte) bool{
 func (h *Hopper) rpcServer(){
     rpc.Register(h)
     rpc.HandleHTTP()
-	config := &net.ListenConfig{
-		KeepAlive: 0,
-	}
-	l, e := config.Listen(nil, "tcp", ":"+strconv.Itoa(h.port))
+    config := &net.ListenConfig{
+        KeepAlive: 0,
+    }
+    l, e := config.Listen(nil, "tcp", ":"+strconv.Itoa(h.port))
     //l, e := net.Listen("tcp", ":"+strconv.Itoa(h.port))
     if e != nil {                              
         log.Fatal("listen error:", e)
@@ -237,7 +238,7 @@ func InitHopper(havocN int, port int, mutf func([]byte, int) []byte, corpus [][]
         crashes:  make(map[string][]c.Seed),
         maxCov:   c.Seed{},
         port:     port,
-		nodes:	  make(map[int]interface{}),
+        nodes:    make(map[int]interface{}),
         //TODO: consider using circular buffer: container/ring
         qChan:    make(chan c.FTask, 10000),
         dead:     0,
@@ -246,9 +247,9 @@ func InitHopper(havocN int, port int, mutf func([]byte, int) []byte, corpus [][]
         seedsN:   0,
     }
 
-	for _, seed := range corpus {
+    for _, seed := range corpus {
         h.addSeed(seed)
-	}
+    }
 
     //Spawn RPC server
     h.rpcServer()

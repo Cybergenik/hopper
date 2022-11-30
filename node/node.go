@@ -32,20 +32,20 @@ type HopperNode struct {
 
 func (n *HopperNode) getFTask() (c.FTask, bool) {
     args := c.FTaskArgs{}
-	t := c.FTask{}
+    t := c.FTask{}
 
-	if ok := n.call("Hopper.GetFTask", &args, &t); !ok {
-		log.Println("Error Getting FTask!")
-		return t, ok
-	}
-	return t, true
+    if ok := n.call("Hopper.GetFTask", &args, &t); !ok {
+        log.Println("Error Getting FTask!")
+        return t, ok
+    }
+    return t, true
 }
 
 func (n *HopperNode) updateFTask(ut c.UpdateFTask) {
     reply := c.UpdateReply{}
     if ok := n.call("Hopper.UpdateFTask", &ut, &reply); !ok {
-		log.Println("Error Updating FTask!")
-	}
+        log.Println("Error Updating FTask!")
+    }
 }
 
 func parseAsan(asan string) string{
@@ -84,7 +84,7 @@ func (n *HopperNode) getCov(cov_cmd *exec.Cmd, sancov_file string) ([]string, bo
         edge := gjson.Get(out.String(), fmt.Sprintf("point-symbol-info.*.*.%v", v.Value()))
         cov_s = append(cov_s, fmt.Sprintf("%s", edge.Value()))
     }
-	return cov_s, true
+    return cov_s, true
 }
 
 func (n *HopperNode) fuzz(t c.FTask) {
@@ -143,14 +143,14 @@ func (n *HopperNode) fuzz(t c.FTask) {
     )
     //Generate Coverage data
     cov_s, ok := n.getCov(cov_cmd, sancov_file)
-	update.Ok = ok
-	if !ok {
-		go n.updateFTask(update)
-	} else {
-		update.CovEdges = len(cov_s)
-		update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
-		go n.updateFTask(update)
-	}
+    update.Ok = ok
+    if !ok {
+        go n.updateFTask(update)
+    } else {
+        update.CovEdges = len(cov_s)
+        update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
+        go n.updateFTask(update)
+    }
 }
 
 func Node(id int, target string, args string, env string, stdin bool, master string) {
@@ -164,23 +164,31 @@ func Node(id int, target string, args string, env string, stdin bool, master str
         master:  master,
         crashN:  0,
     }
-    err := os.MkdirAll(n.name, 0750)
-    if err != nil && !os.IsExist(err) {
-		log.Fatal(err)
-	}
+    
+    // Check target executable exists
+    if _, err := os.Stat(target); err != nil {
+        log.Fatal(err)
+    }
+    // Env vars
     n.env = append(n.env, "ASAN_OPTIONS=coverage=1")
+    // Init TCP/IP connection to master
     c, err := rpc.DialHTTP("tcp", n.master)
     if err != nil {                 
         log.Fatal("dialing:", err)
     }
     n.conn = c
-    defer n.conn.Close()       
+    defer n.conn.Close()
+    // Create node out dir
+    if err := os.MkdirAll(n.name, 0750); err != nil && !os.IsExist(err) {
+        log.Fatal(err)
+    }
     //Infinite loop, request Task -> do Task
-	for {
-		ftask, ok := n.getFTask()
-		if !ok || ftask.Die {
-		    return
-		}
+    fmt.Printf("Started Node: %v\n", id)
+    for {
+        ftask, ok := n.getFTask()
+        if !ok || ftask.Die {
+            return
+        }
         n.fuzz(ftask)
     }
 }
@@ -208,7 +216,6 @@ func main() {
     if err != "" {
         log.Fatal(err)
     }
-    fmt.Printf("Starting Node: %v\n", *id)
     masterNode := *master+":"+strconv.Itoa(*port)
     Node(*id, *target, *args, *env, *stdin, masterNode)
 }
