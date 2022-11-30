@@ -33,13 +33,16 @@ type Model struct {
 
 // Style
 const (
+	magneta  = lipgloss.Color("#FF00FF")
 	hotPink  = lipgloss.Color("#FF06B7")
-	darkGray = lipgloss.Color("#767676")
+	darkGray = lipgloss.Color("#C0C0C0")
+	snow	 = lipgloss.Color("#FFFAFA")
 )
 
 var (
-	labelstyle = lipgloss.NewStyle().Foreground(hotPink)
-	datastyle  = lipgloss.NewStyle().Foreground(darkGray)
+	labelstyle = lipgloss.NewStyle().Foreground(magneta)
+	datastyle  = lipgloss.NewStyle().Foreground(snow)
+	substyle   =  lipgloss.NewStyle().Foreground(darkGray)
 )
 
 func tickStats() tea.Cmd {
@@ -97,7 +100,7 @@ func (m Model) View() string {
 		datastyle.Width(30).Render("Master running on port: "+strconv.Itoa(m.stats.Port)),
 		// Fields
 		labelstyle.Width(6).Render("Havoc:"),
-		labelstyle.Width(15).Render("Its speed:"),
+		labelstyle.Width(15).Render("Its/s:"),
 		labelstyle.Width(6).Render("Edges:"),
 		// Data
 		datastyle.Width(6).Render(strconv.Itoa(m.stats.Havoc)),
@@ -120,7 +123,7 @@ func (m Model) View() string {
 		datastyle.Width(15).Render(strconv.Itoa(m.stats.UniqueCrashes)),
 		datastyle.Width(13).Render(strconv.Itoa(m.stats.UniquePaths)),
 		// Quit
-		datastyle.Width(30).Render("Press Esc or Ctrl+C to quit"),
+		substyle.Width(30).Render("Press Esc or Ctrl+C to quit"),
 	)
 
 	return body
