@@ -15,7 +15,7 @@ import (
     c "github.com/Cybergenik/hopper/common"
 )
 
-//Debian unstable: "sancov-15"
+//Deb sid: "sancov-15"
 const SANCOV = "sancov"
 
 type HopperNode struct {
@@ -181,7 +181,6 @@ func Node(id int, target string, args string, env string, stdin bool, master str
 		if !ok || ftask.Die {
 		    return
 		}
-        //fmt.Printf("Fuzzing: %s\n", ftask.Seed)
         n.fuzz(ftask)
     }
 }

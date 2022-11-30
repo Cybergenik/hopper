@@ -95,7 +95,7 @@ func (m Model) View() string {
     
 		    %s
         `,
-		labelstyle.Width(70).Render(HOPPER1),
+		labelstyle.Width(70).Render(HOPPER),
 		datastyle.Width(60).Render(hline),
 		datastyle.Width(30).Render("Master running on port: "+strconv.Itoa(m.stats.Port)),
 		// Fields
