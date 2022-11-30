@@ -13,14 +13,15 @@ import (
 
 const (
 	HOPPER = `
-            __  __                           
-           / / / /___  ____  ____  ___  _____
-          / /_/ / __ \/ __ \/ __ \/ _ \/ ___/
-         / __  / /_/ / /_/ / /_/ /  __/ /    
-        /_/ /_/\____/ .___/ .___/\___/_/     
-                   /_/   /_/                 
+      :::    :::  ::::::::  :::::::::  :::::::::  :::::::::: ::::::::: 
+     :+:    :+: :+:    :+: :+:    :+: :+:    :+: :+:        :+:    :+: 
+    +:+    +:+ +:+    +:+ +:+    +:+ +:+    +:+ +:+        +:+    +:+  
+   +#++:++#++ +#+    +:+ +#++:++#+  +#++:++#+  +#++:++#   +#++:++#:    
+  +#+    +#+ +#+    +#+ +#+        +#+        +#+        +#+    +#+    
+ #+#    #+# #+#    #+# #+#        #+#        #+#        #+#    #+#     
+###    ###  ########  ###        ###        ########## ###    ###      
 `
-	hline = `---------------------------------------`
+	hline = `==================================================`
 )
 
 type TickMsg time.Time
@@ -34,7 +35,6 @@ type Model struct {
 // Style
 const (
 	magneta  = lipgloss.Color("#FF00FF")
-	hotPink  = lipgloss.Color("#FF06B7")
 	darkGray = lipgloss.Color("#C0C0C0")
 	snow	 = lipgloss.Color("#FFFAFA")
 )
@@ -81,22 +81,22 @@ func (m Model) View() string {
 	body := fmt.Sprintf(
 		`
             %s
-    %s
-        %s
-
-    %s      %s    %s
-    %s      %s    %s
-
-    %s      %s    %s
-    %s      %s    %s
-
-    %s      %s    %s
-    %s      %s    %s
-
-        %s
+	%s
+		    %s
+    	
+    	      %s    %s    %s
+    	      %s    %s    %s
+    	
+    	      %s    %s    %s
+    	      %s    %s    %s
+    	
+    	      %s    %s    %s
+    	      %s    %s    %s
+    
+		    %s
         `,
-		labelstyle.Width(50).Render(HOPPER),
-		datastyle.Width(50).Render(hline),
+		labelstyle.Width(70).Render(HOPPER1),
+		datastyle.Width(60).Render(hline),
 		datastyle.Width(30).Render("Master running on port: "+strconv.Itoa(m.stats.Port)),
 		// Fields
 		labelstyle.Width(6).Render("Havoc:"),
