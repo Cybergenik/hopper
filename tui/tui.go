@@ -13,14 +13,15 @@ import (
 
 const (
 	HOPPER = `
-            __  __                           
-           / / / /___  ____  ____  ___  _____
-          / /_/ / __ \/ __ \/ __ \/ _ \/ ___/
-         / __  / /_/ / /_/ / /_/ /  __/ /    
-        /_/ /_/\____/ .___/ .___/\___/_/     
-                   /_/   /_/                 
+      :::    :::  ::::::::  :::::::::  :::::::::  :::::::::: ::::::::: 
+     :+:    :+: :+:    :+: :+:    :+: :+:    :+: :+:        :+:    :+: 
+    +:+    +:+ +:+    +:+ +:+    +:+ +:+    +:+ +:+        +:+    +:+  
+   +#++:++#++ +#+    +:+ +#++:++#+  +#++:++#+  +#++:++#   +#++:++#:    
+  +#+    +#+ +#+    +#+ +#+        +#+        +#+        +#+    +#+    
+ #+#    #+# #+#    #+# #+#        #+#        #+#        #+#    #+#     
+###    ###  ########  ###        ###        ########## ###    ###      
 `
-	hline = `---------------------------------------`
+	hline = `==================================================`
 )
 
 type TickMsg time.Time
@@ -33,13 +34,15 @@ type Model struct {
 
 // Style
 const (
-	hotPink  = lipgloss.Color("#FF06B7")
-	darkGray = lipgloss.Color("#767676")
+	magneta  = lipgloss.Color("#FF00FF")
+	darkGray = lipgloss.Color("#C0C0C0")
+	snow	 = lipgloss.Color("#FFFAFA")
 )
 
 var (
-	labelstyle = lipgloss.NewStyle().Foreground(hotPink)
-	datastyle  = lipgloss.NewStyle().Foreground(darkGray)
+	labelstyle = lipgloss.NewStyle().Foreground(magneta)
+	datastyle  = lipgloss.NewStyle().Foreground(snow)
+	substyle   =  lipgloss.NewStyle().Foreground(darkGray)
 )
 
 func tickStats() tea.Cmd {
@@ -78,38 +81,49 @@ func (m Model) View() string {
 	body := fmt.Sprintf(
 		`
             %s
-    %s
-        %s
-
-    %s      %s    %s
-    %s      %s    %s
-
-    %s      %s    %s
-    %s      %s    %s
-
-        %s
+	%s
+		    %s
+    	
+    	      %s    %s    %s
+    	      %s    %s    %s
+    	
+    	      %s    %s    %s
+    	      %s    %s    %s
+    	
+    	      %s    %s    %s
+    	      %s    %s    %s
+    
+		    %s
         `,
-		labelstyle.Width(50).Render(HOPPER),
-		datastyle.Width(50).Render(hline),
+		labelstyle.Width(70).Render(HOPPER),
+		datastyle.Width(60).Render(hline),
 		datastyle.Width(30).Render("Master running on port: "+strconv.Itoa(m.stats.Port)),
 		// Fields
 		labelstyle.Width(6).Render("Havoc:"),
-		labelstyle.Width(10).Render("Its speed:"),
+		labelstyle.Width(15).Render("Its/s:"),
 		labelstyle.Width(6).Render("Edges:"),
 		// Data
 		datastyle.Width(6).Render(strconv.Itoa(m.stats.Havoc)),
-		datastyle.Width(10).Render(strconv.Itoa(m.stats.Its-m.oldStats.Its)+"/s"),
+		datastyle.Width(15).Render(strconv.Itoa(m.stats.Its-m.oldStats.Its)+"/s"),
 		datastyle.Width(6).Render(strconv.Itoa(m.stats.MaxSeed.CovEdges)),
 		// Fields
 		labelstyle.Width(6).Render("Seeds:"),
-		labelstyle.Width(10).Render("Crashes:"),
+		labelstyle.Width(15).Render("Crashes:"),
 		labelstyle.Width(15).Render("Fuzz Instances:"),
 		// Data
 		datastyle.Width(6).Render(strconv.Itoa(m.stats.SeedsN)),
-		datastyle.Width(10).Render(strconv.Itoa(m.stats.CrashN)),
+		datastyle.Width(15).Render(strconv.Itoa(m.stats.CrashN)),
 		datastyle.Width(15).Render(strconv.Itoa(m.stats.Its)),
+		// Fields
+		labelstyle.Width(6).Render("Nodes:"),
+		labelstyle.Width(15).Render("Unique Crashes:"),
+		labelstyle.Width(13).Render("Unique Paths:"),
+		// Data
+		datastyle.Width(6).Render(strconv.Itoa(m.stats.Nodes)),
+		datastyle.Width(15).Render(strconv.Itoa(m.stats.UniqueCrashes)),
+		datastyle.Width(13).Render(strconv.Itoa(m.stats.UniquePaths)),
 		// Quit
-		datastyle.Width(30).Render("Press Esc or Ctrl+C to quit"),
+		substyle.Width(30).Render("Press Esc or Ctrl+C to quit"),
 	)
 
 	return body

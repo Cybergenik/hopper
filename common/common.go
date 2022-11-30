@@ -19,17 +19,20 @@ type Seed struct {
 }
 
 type Stats struct {
-    Its     int
-    Port    int
-    Havoc   int
-    CrashN  int
-    SeedsN  int
-    MaxSeed Seed
+    Its           int
+    Port          int
+    Havoc         int
+    CrashN        int
+    SeedsN        int
+    MaxSeed       Seed
+    UniqueCrashes int
+    UniquePaths   int
+    Nodes         int
 }
 
 type FTask struct {
     Id       uint64
-	Seed     []byte
+    Seed     []byte
     Die      bool
 }
 

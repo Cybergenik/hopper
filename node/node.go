@@ -15,6 +15,9 @@ import (
     c "github.com/Cybergenik/hopper/common"
 )
 
+//Deb sid: "sancov-15"
+const SANCOV = "sancov"
+
 type HopperNode struct {
     name        string
     id          int
@@ -27,21 +30,22 @@ type HopperNode struct {
     conn        *rpc.Client
 }
 
-func (n *HopperNode) getFTask() c.FTask {
+func (n *HopperNode) getFTask() (c.FTask, bool) {
     args := c.FTaskArgs{}
-	t := c.FTask{}
-	if ok := n.call("Hopper.GetFTask", &args, &t); !ok {
-		log.Println("Error Getting FTask!")
-        t.Id = 0
-	}
-	return t
+    t := c.FTask{}
+
+    if ok := n.call("Hopper.GetFTask", &args, &t); !ok {
+        log.Println("Error Getting FTask!")
+        return t, ok
+    }
+    return t, true
 }
 
 func (n *HopperNode) updateFTask(ut c.UpdateFTask) {
     reply := c.UpdateReply{}
     if ok := n.call("Hopper.UpdateFTask", &ut, &reply); !ok {
-		log.Println("Error Updating FTask!")
-	}
+        log.Println("Error Updating FTask!")
+    }
 }
 
 func parseAsan(asan string) string{
@@ -64,6 +68,23 @@ func (n *HopperNode) persistCrash(seed []byte, asan bytes.Buffer, crashN int) {
     if err != nil {
         log.Fatal(err)
     }
+}
+
+func (n *HopperNode) getCov(cov_cmd *exec.Cmd, sancov_file string) ([]string, bool){
+    var out bytes.Buffer
+    cov_cmd.Stdout = &out
+    if err := cov_cmd.Run(); err != nil {
+        return nil, false
+    }
+    go os.Remove(sancov_file)
+    // Coverage tree parsing
+    covered := gjson.Get(out.String(), "covered-points").Array()
+    cov_s := []string{}
+    for _, v := range covered {
+        edge := gjson.Get(out.String(), fmt.Sprintf("point-symbol-info.*.*.%v", v.Value()))
+        cov_s = append(cov_s, fmt.Sprintf("%s", edge.Value()))
+    }
+    return cov_s, true
 }
 
 func (n *HopperNode) fuzz(t c.FTask) {
@@ -115,32 +136,21 @@ func (n *HopperNode) fuzz(t c.FTask) {
         go n.persistCrash(t.Seed, errOut, n.crashN)
         n.crashN++
     }
-    //Generate Coverage data
-    cov_cmd := exec.Command("sancov-15",
+    cov_cmd := exec.Command(SANCOV,
         "--symbolize",
         sancov_file,
         n.target,
     )
-    var out bytes.Buffer
-    cov_cmd.Stdout = &out
-    if err := cov_cmd.Run(); err != nil {
-        log.Println(err)
-        update.Ok = false
+    //Generate Coverage data
+    cov_s, ok := n.getCov(cov_cmd, sancov_file)
+    update.Ok = ok
+    if !ok {
         go n.updateFTask(update)
-        return
+    } else {
+        update.CovEdges = len(cov_s)
+        update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
+        go n.updateFTask(update)
     }
-    go os.Remove(sancov_file)
-    // Coverage tree parsing
-    covered := gjson.Get(out.String(), "covered-points").Array()
-    update.CovEdges = len(covered)
-    cov_s := []string{}
-    for _, v := range covered {
-        edge := gjson.Get(out.String(), fmt.Sprintf("point-symbol-info.*.*.%v", v.Value()))
-        cov_s = append(cov_s, fmt.Sprintf("%s", edge.Value()))
-    }
-    update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
-    update.Ok = true
-    go n.updateFTask(update)
 }
 
 func Node(id int, target string, args string, env string, stdin bool, master string) {
@@ -154,27 +164,31 @@ func Node(id int, target string, args string, env string, stdin bool, master str
         master:  master,
         crashN:  0,
     }
-    err := os.MkdirAll(n.name, 0750)
-    if err != nil && !os.IsExist(err) {
-		log.Fatal(err)
-	}
+    
+    // Check target executable exists
+    if _, err := os.Stat(target); err != nil {
+        log.Fatal(err)
+    }
+    // Env vars
     n.env = append(n.env, "ASAN_OPTIONS=coverage=1")
+    // Init TCP/IP connection to master
     c, err := rpc.DialHTTP("tcp", n.master)
     if err != nil {                 
         log.Fatal("dialing:", err)
     }
     n.conn = c
-    defer n.conn.Close()       
+    defer n.conn.Close()
+    // Create node out dir
+    if err := os.MkdirAll(n.name, 0750); err != nil && !os.IsExist(err) {
+        log.Fatal(err)
+    }
     //Infinite loop, request Task -> do Task
-	for {
-		ftask := n.getFTask()
-        for ftask.Id == 0 {
-            ftask = n.getFTask()
-        }
-		if ftask.Die {
+    fmt.Printf("Started Node: %v\n", id)
+    for {
+        ftask, ok := n.getFTask()
+        if !ok || ftask.Die {
             return
-		}	
-        //fmt.Printf("Fuzzing: %s\n", ftask.Seed)
+        }
         n.fuzz(ftask)
     }
 }
@@ -202,19 +216,12 @@ func main() {
     if err != "" {
         log.Fatal(err)
     }
-    fmt.Printf("Starting Node: %v\n", *id)
-    //fmt.Printf("Args: %v\n", *args)
     masterNode := *master+":"+strconv.Itoa(*port)
     Node(*id, *target, *args, *env, *stdin, masterNode)
 }
 
 func (n *HopperNode) call(rpcname string, args interface{}, reply interface{}) bool {
-    c, err := rpc.DialHTTP("tcp", n.master)
-    if err != nil {                 
-        log.Fatal("dialing:", err)
-    }
-                                                            
-    err = c.Call(rpcname, args, reply)
+    err := n.conn.Call(rpcname, args, reply)
     if err != nil {                    
         log.Print(err)
         return false
