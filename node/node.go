@@ -183,7 +183,7 @@ func Node(id int, target string, args string, env string, stdin bool, master str
         log.Fatal(err)
     }
     //Infinite loop, request Task -> do Task
-    fmt.Printf("Started Node: %v\n", id)
+    log.Printf("Started Node: %v\n", id)
     for {
         ftask, ok := n.getFTask()
         if !ok || ftask.Die {
@@ -216,6 +216,10 @@ func main() {
     if err != "" {
         log.Fatal(err)
     }
+    _, Err := exec.LookPath(SANCOV)
+	if Err != nil {
+        log.Fatalf("Hopper Node: Node requires clang-tools utils: sanvoc")
+	}
     masterNode := *master+":"+strconv.Itoa(*port)
     Node(*id, *target, *args, *env, *stdin, masterNode)
 }
