@@ -199,8 +199,8 @@ func main() {
     args    := flag.String("args", "", "args to use against target, ex: --depth=1 @@")
     env     := flag.String("env", "", "env variables for target seperated by a `;`, ex: ARG1=foo;ARG2=bar;")
     stdin   := flag.Bool("stdin", false, "seed should be fed as stdin or as an argument")
-    master  := flag.String("M", "localhost", "instrumented target binary")
-    port    := flag.Int("P", 6969, "instrumented target binary")
+    master  := flag.String("M", "localhost", "IP/address of Master")
+    port    := flag.Int("P", 6969, "Port of Master")
         
     flag.Parse()
     err := ""
