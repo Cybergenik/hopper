@@ -7,7 +7,6 @@ import (
     "log"
     "flag"
     "strings"
-    "strconv"
     "path/filepath"
     "net/rpc"
     "bytes"
@@ -64,7 +63,7 @@ func (n *HopperNode) persistCrash(seed []byte, asan bytes.Buffer, crashN int) {
     report.Write(seed)
     report.WriteString("\n\nASAN:\n\n")
     report.Write(asan.Bytes())
-    err := os.WriteFile(n.name+"/"+"crash"+strconv.Itoa(crashN), report.Bytes(), 0660)
+    err := os.WriteFile(fmt.Sprintf("%s/crash%d", n.name, crashN), report.Bytes(), 0660)
     if err != nil {
         log.Fatal(err)
     }
@@ -155,7 +154,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
 
 func Node(id int, target string, args string, env string, stdin bool, master string) {
     n := HopperNode{
-        name:    "Node"+strconv.Itoa(id),
+        name:    fmt.Sprintf("Node%d", id),
         id:      id,
         target:  target,
         args:    args,
@@ -220,7 +219,7 @@ func main() {
 	if Err != nil {
         log.Fatalf("Hopper Node: Node requires clang-tools utils: sanvoc")
 	}
-    masterNode := *master+":"+strconv.Itoa(*port)
+    masterNode := fmt.Sprintf("%s:%d", *master, *port)
     Node(*id, *target, *args, *env, *stdin, masterNode)
 }
 
