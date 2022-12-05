@@ -213,7 +213,8 @@ func main() {
         err += "Hopper Node: must provide an @@ input in args if not using stdin: ex --stdin or --args @@\n"
     }
     if err != "" {
-        log.Fatal(err)
+        fmt.Println(err)
+        os.Exit(1)
     }
     _, Err := exec.LookPath(SANCOV)
 	if Err != nil {

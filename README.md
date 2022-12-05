@@ -10,7 +10,7 @@ by <a href="https://github.com/AFLplusplus/AFLplusplus">AFL++</a>
 distributed environments, it's not meant to replace AFL++ in most cases.
 </h4>
 
-<img src="master.png" align="center" alt="Runemaster Icon"/><br>
+<img src="images/master.png" align="center" alt="Runemaster Icon"/><br>
 
 *Hopper Master*
 
@@ -59,21 +59,22 @@ Ex:
   to `false`
 
 Ex: 
-> Args: `go run node/node.go -I 1 -T test/target --args "--depth=2 @@"` 
+> Args: `cd node; go build .; ./node -I 1 -T target --args "--depth=2 @@"` 
 >
-> Stdin: `go run node/node.go -I 1 -T test/target --stdin`
+> Stdin: `cd node; go build .; ./node -I 1 -T target --stdin`
 
-#### Example:
+#### Simple Dockerized Demo:
 
 If you want to run Hopper locally with 10 fuzzing Nodes on a test application
 with a known vulnerability you can do the following:
 
 1. Clone project: `git clone https://github.com/Cybergenik/hopper.git`
-2. Compile target: `cd hopper/test && ./compile getdomain.c`
-3. Run Master: `./run_master.sh`
-4. Run Nodes: `./run_node.sh 10` (I'd recommend no more than 1.5x # of logical cores on your machine, any more
+3. Run Master: `./exmaples/run_master_docker.sh` 
+4. Run Nodes: `./examples/run_node_docker.sh 1 10` (I'd recommend no more than 1.5x # of logical cores on your machine, any more
 nodes on one system and they just get throttled and competing for CPU time)
 5. Look at the nice TUI :>
+
+*You can also look at all the docker images running by doing:* `docker ps`
 
 ## **Inspiration**
 
@@ -95,6 +96,6 @@ different.
 
 ## Architecture
 
-<div align="center"><img src="arch.png" align="center" alt="Runemaster
+<div align="center"><img src="images/arch.png" align="center" alt="Runemaster
 Icon"/></div><br>
 
