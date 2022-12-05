@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM --platform=linux/amd64 debian:stable
 COPY . /hopper
 EXPOSE 6969/tcp
 ## Install clang utils
