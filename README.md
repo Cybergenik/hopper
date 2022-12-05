@@ -68,7 +68,8 @@ Ex:
 If you want to run Hopper locally with 10 fuzzing Nodes on a test application
 with a known vulnerability you can do the following:
 
-1. Clone project: `git clone https://github.com/Cybergenik/hopper.git`
+1. Clone project: `git clone https://github.com/Cybergenik/hopper.git && cd hopper`
+2. Build Image: `docker build -t hopper-node .`
 3. Run Master: `./exmaples/run_master_docker.sh` 
 4. Run Nodes: `./examples/run_node_docker.sh 1 10` (I'd recommend no more than 1.5x # of logical cores on your machine, any more
 nodes on one system and they just get throttled and competing for CPU time)
