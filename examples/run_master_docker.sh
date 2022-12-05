@@ -11,4 +11,6 @@ docker run -it --rm \
     --publish 6969:6969 \
     hopper-node:latest \
     bash -c "cd hopper; go build .; ./hopper -I ./examples/parse/in -H=5 && cat hopper.report"
+## Clean up subnet
+docker network rm hopper-subnet &> /dev/null
 
