@@ -58,7 +58,7 @@ Max Edges:      %v
 Crashes:        %v
 UniqueCrashes:  %v
 UniquePaths:    %v
-Nodes:      %v
+Nodes:          %v
 
 %s
 `

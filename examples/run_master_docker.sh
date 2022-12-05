@@ -6,5 +6,5 @@ sudo docker run -it --rm \
     --name hopper-master \
     -p 6969:6969/tcp \
     hopper-node:latest \
-    bash -c "cd hopper; go build .; ./hopper -I ./examples/parse/in -H=5"
+    bash -c "cd hopper; go build .; ./hopper -I ./examples/parse/in -H=5 && cat hopper.report"
 
