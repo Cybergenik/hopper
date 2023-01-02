@@ -77,24 +77,6 @@ nodes on one system and they just get throttled and competing for CPU time)
 
 *You can also look at all the docker images running by doing:* `docker ps`
 
-## **Inspiration**
-
-I'll be graduating May 2023, and I had to choose whether to do a Capstone
-Project or do a Thesis, I chose Thesis as I felt that I could build something
-pretty cool related to Fuzzers. I have been researching Fuzzers for a few years
-at the [FLUX](https://www.flux.utah.edu/) research group, from chasing WASM
-fuzzing and other compiler based fuzzing approaches, to bootstrapping GDB with
-python to get better crash reports on crashes. But I wasn't sure exactly what I
-should write my Thesis about. Until, a serendipitously timed assignment to
-implement Map-Reduce in my Distributed Systems course taught by Professor [Ryan
-Stutsman](https://rstutsman.github.io/), this almost felt like divine
-premonition. I began looking at current approaches into the space of parallel
-distributed fuzzers, I found that very little had been done in this area. With
-this in mind, I set out to build Hopper! Although Google's Map-Reduce was the initial
-inspiration and definitely inspired the way Hopper manages the Task Scheduling
-and assignment strategy, Hopper’s core infrastructure is substantially
-different.
-
 ## Architecture
 
 <div align="center"><img src="images/arch.png" align="center" alt="Runemaster
