@@ -24,7 +24,7 @@ type Hopper struct {
     // seed map, used as set for deduping seeds and keeping track of Crashes
     seeds    map[uint64]c.Seed
     // cov map, used as set for deduping same coverage seeds
-    coverage  map[uint64]interface{}
+    coverage  map[uint64]bool
     // Coverage per number of nodes
     crashes  map[string][]c.Seed
     // Max Coverage in terms of edges
@@ -148,9 +148,11 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
         Crash:    update.Crash != "",
     }
     // Dedup based on similar Coverage hash
-    if _, ok := h.coverage[update.CovHash]; !ok{
-        h.coverage[update.CovHash] = nil
+    if !h.coverage[update.CovHash]{
+        h.coverage[update.CovHash] = true
+        // Found Unique crash, tell node to Log
         if (update.Crash != "") {
+            reply.Log = true
             h.crashes[update.Crash] = append(h.crashes[update.Crash], h.seeds[update.Id])
         }
     }
@@ -234,7 +236,7 @@ func InitHopper(havocN int, port int, mutf func([]byte, int) []byte, corpus [][]
         havoc:    havocN,
         mutf:     mutf,
         seeds:    make(map[uint64]c.Seed),
-        coverage: make(map[uint64]interface{}),
+        coverage: make(map[uint64]bool),
         crashes:  make(map[string][]c.Seed),
         maxCov:   c.Seed{},
         port:     port,

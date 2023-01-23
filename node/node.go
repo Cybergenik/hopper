@@ -40,11 +40,13 @@ func (n *HopperNode) getFTask() (c.FTask, bool) {
     return t, true
 }
 
-func (n *HopperNode) updateFTask(ut c.UpdateFTask) {
+// Returns Bool : True if Master wants to Log crash
+func (n *HopperNode) updateFTask(ut c.UpdateFTask) bool {
     reply := c.UpdateReply{}
     if ok := n.call("Hopper.UpdateFTask", &ut, &reply); !ok {
         log.Println("Error Updating FTask!")
     }
+    return reply.Log
 }
 
 func parseAsan(asan string) string{
@@ -59,11 +61,17 @@ func parseAsan(asan string) string{
 }
 
 func (n *HopperNode) persistCrash(seed []byte, asan bytes.Buffer, crashN int) {
-    report := bytes.NewBufferString("Seed:\n\n")
-    report.Write(seed)
-    report.WriteString("\n\nASAN:\n\n")
+    out := fmt.Sprintf("%s/crash%d", n.name, crashN)
+    //Write input
+    input := bytes.NewBuffer(seed)
+    err := os.WriteFile(fmt.Sprintf("%s.in", out), input.Bytes(), 0660)
+    if err != nil {
+        log.Fatal(err)
+    }
+    //Write ASAN data
+    report := bytes.NewBufferString("ASAN:\n\n")
     report.Write(asan.Bytes())
-    err := os.WriteFile(fmt.Sprintf("%s/crash%d", n.name, crashN), report.Bytes(), 0660)
+    err = os.WriteFile(fmt.Sprintf("%s.dat", out), report.Bytes(), 0660)
     if err != nil {
         log.Fatal(err)
     }
@@ -133,7 +141,6 @@ func (n *HopperNode) fuzz(t c.FTask) {
     //Crash Detected
     if err != nil {
         update.Crash = parseAsan(errOut.String())
-        go n.persistCrash(t.Seed, errOut, n.crashN)
         n.crashN++
     }
     cov_cmd := exec.Command(SANCOV,
@@ -144,13 +151,16 @@ func (n *HopperNode) fuzz(t c.FTask) {
     //Generate Coverage data
     cov_s, ok := n.getCov(cov_cmd, sancov_file)
     update.Ok = ok
-    if !ok {
-        go n.updateFTask(update)
-    } else {
-        update.CovEdges = len(cov_s)
-        update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
-        go n.updateFTask(update)
-    }
+    go func(update c.UpdateFTask, errOut bytes.Buffer, N int){
+        if update.Ok {
+            update.CovEdges = len(cov_s)
+            update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
+        }
+        log := n.updateFTask(update)
+        if log {
+            go n.persistCrash(t.Seed, errOut, n.crashN)
+        }
+    }(update, errOut, n.crashN)
 }
 
 func Node(id int, target string, args string, env string, stdin bool, master string) {

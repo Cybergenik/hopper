@@ -46,7 +46,7 @@ type Coverage struct {
 }
 
 type UpdateReply struct {
-
+    Log      bool
 }
 
 type UpdateFTask struct {

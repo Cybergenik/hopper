@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# sudo docker build -t hopper-nodes .
+# sudo docker build -t hopper-node .
 ## Create Hopper subnet
 docker network create hopper-subnet &> /dev/null
 ## Spawn Master
