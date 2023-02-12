@@ -5,15 +5,17 @@ import (
     "encoding/binary"
 )
 
-func Hash(b []byte) uint64{
+type HashID uint64
+
+func Hash(b []byte) HashID {
     sum := md5.Sum(b)
-    return binary.BigEndian.Uint64([]byte(sum[:]))
+    return HashID(binary.BigEndian.Uint64([]byte(sum[:])))
 }
 
 type Seed struct {
     NodeId      int
     Bytes       *[]byte
-    CovHash     uint64
+    CovHash     HashID
     CovEdges    int
     Crash       bool
 }
@@ -31,7 +33,7 @@ type Stats struct {
 }
 
 type FTask struct {
-    Id       uint64
+    Id       HashID
     Seed     []byte
     Die      bool
 }
@@ -52,8 +54,8 @@ type UpdateReply struct {
 type UpdateFTask struct {
     NodeId   int
     Ok       bool
-    Id       uint64
-    CovHash  uint64
+    Id       HashID
+    CovHash  HashID
     CovEdges int
     Crash    string
 }

@@ -15,6 +15,7 @@ import (
     c "github.com/Cybergenik/hopper/common"
 )
 
+
 type Hopper struct {
     // Havoc level to use in mutator
     havoc    int
@@ -23,9 +24,9 @@ type Hopper struct {
     // Mutation function
     mutf     func ([]byte, int) []byte
     // seed map, used as set for deduping seeds and keeping track of Crashes
-    seeds    map[uint64]c.Seed
+    seeds    map[c.HashID]c.Seed
     // cov map, used as set for deduping same coverage seeds
-    coverage  map[uint64]bool
+    coverage  map[c.HashID]bool
     // Coverage per number of nodes
     crashes  map[string][]c.Seed
     // Max Coverage in terms of edges
@@ -33,7 +34,7 @@ type Hopper struct {
     // Port to host RPC
     port     int
     // Queue Channel to add new seeds based on energy
-    qChan    chan c.FTask
+    qChan    chan c.HashID
     // Keeps track of whether Hopper has been killed
     dead     int32
     // Node IDs
@@ -124,9 +125,10 @@ func (h *Hopper) killed() bool {
 }
 
 func (h *Hopper) GetFTask(args *c.FTaskArgs, task *c.FTask) error {
-    t := <-h.qChan 
-    t.Die = h.killed()
-    *task = t
+    seedHash := <-h.qChan 
+    task.Id = seedHash
+    task.Seed = *h.seeds[seedHash].Bytes
+    task.Die = h.killed()
     return nil
 }
 
@@ -172,7 +174,7 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
 
 func (h *Hopper) energyMutate(seed c.Seed, maxEdges int){
     //Baseline .01% of available queue capacity
-    baseline := int(float32(cap(h.qChan) - len(h.qChan)) * float32(.0005))
+    baseline := int(float32(cap(h.qChan) - len(h.qChan)) * float32(.001))
     mutN := 0
     covDiff := seed.CovEdges - maxEdges
     if covDiff >= 0 {
@@ -206,19 +208,7 @@ func (h *Hopper) addSeed(seed []byte) bool{
         CovEdges: -1,
     }
     h.mu.Unlock()
-    if len(h.qChan) == cap(h.qChan){
-        go func(){
-            h.qChan<-c.FTask{
-                Id:       seedHash,
-                Seed:     seed,
-            }
-        }()
-    } else {
-        h.qChan<-c.FTask{
-            Id:       seedHash,
-            Seed:     seed,
-        }
-    }
+    h.qChan <- seedHash
     return true
 }
 
@@ -240,14 +230,14 @@ func InitHopper(havocN int, port int, mutf func([]byte, int) []byte, corpus [][]
     h := Hopper{
         havoc:    havocN,
         mutf:     mutf,
-        seeds:    make(map[uint64]c.Seed),
-        coverage: make(map[uint64]bool),
+        seeds:    make(map[c.HashID]c.Seed),
+        coverage: make(map[c.HashID]bool),
         crashes:  make(map[string][]c.Seed),
         maxCov:   c.Seed{},
         port:     port,
         nodes:    make(map[int]interface{}),
         //TODO: consider using circular buffer: container/ring
-        qChan:    make(chan c.FTask, 10000),
+        qChan:    make(chan c.HashID, 10000),
         dead:     0,
         its:      0,
         crashN:   0,
