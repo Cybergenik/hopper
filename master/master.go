@@ -127,7 +127,7 @@ func (h *Hopper) killed() bool {
 func (h *Hopper) GetFTask(args *c.FTaskArgs, task *c.FTask) error {
     seedHash := <-h.qChan 
     task.Id = seedHash
-    task.Seed = *h.seeds[seedHash].Bytes
+    task.Seed = h.seeds[seedHash].Bytes
     task.Die = h.killed()
     return nil
 }
@@ -186,8 +186,8 @@ func (h *Hopper) energyMutate(seed c.Seed, maxEdges int){
         mutN += baseline
     }
     for i:=0;i<mutN;i++{
-        for ok := h.addSeed(h.mutf(*seed.Bytes, h.havoc)); !ok; {
-            ok = h.addSeed(h.mutf(*seed.Bytes, h.havoc))
+        for ok := h.addSeed(h.mutf(seed.Bytes, h.havoc)); !ok; {
+            ok = h.addSeed(h.mutf(seed.Bytes, h.havoc))
         }
     }
     seed.Bytes = nil
@@ -203,7 +203,7 @@ func (h *Hopper) addSeed(seed []byte) bool{
     h.seedsN++
     h.seeds[seedHash] = c.Seed{
         NodeId:   -1,
-        Bytes:    &seed,
+        Bytes:    seed,
         CovHash:  0,
         CovEdges: -1,
     }

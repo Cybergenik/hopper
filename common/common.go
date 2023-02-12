@@ -14,7 +14,7 @@ func Hash(b []byte) HashID {
 
 type Seed struct {
     NodeId      int
-    Bytes       *[]byte
+    Bytes       []byte
     CovHash     HashID
     CovEdges    int
     Crash       bool
