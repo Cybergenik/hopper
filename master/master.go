@@ -183,7 +183,7 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
 
 func (h *Hopper) energyMutate(seed []byte, covEdges int, crash bool, maxEdges int) {
     //Baseline .01% of available queue capacity
-    baseline := int(float32(cap(h.qChan) - len(h.qChan)) * float32(.001))
+    baseline := int(float32(cap(h.qChan) - len(h.qChan)) * float32(.01))
     mutN := 0
     covDiff := covEdges - maxEdges
     if covDiff >= 0 {
