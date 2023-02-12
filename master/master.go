@@ -164,7 +164,7 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
     }
     //Mutate seed
     s := h.seeds[update.Id]
-    go h.energyMutate(s.Bytes, s.CovEdges, s.Crash, h.maxCov.CovEdges)
+    go h.energyMutate(append([]byte{}, s.Bytes...), s.CovEdges, s.Crash, h.maxCov.CovEdges)
 
     //Free mutated seed
     s.Bytes = nil
