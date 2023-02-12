@@ -208,7 +208,13 @@ func (h *Hopper) addSeed(seed []byte) bool{
         CovEdges: -1,
     }
     h.mu.Unlock()
-    h.qChan <- seedHash
+    if len(h.qChan) == cap(h.qChan) {
+        go func(seedHash c.HashID){
+            h.qChan <- seedHash
+        }(seedHash)
+    } else {
+        h.qChan <- seedHash
+    }
     return true
 }
 
