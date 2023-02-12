@@ -3,7 +3,7 @@
 set -e
 
 # Update and install git and curl
-sudo apt-get update && sudo apt-get install git curl
+sudo apt-get update && sudo apt-get install -y git curl
 
 cd ~
 # Install docker
@@ -16,4 +16,6 @@ cd hopper/
 sudo docker build -t hopper-node .
 cd examples/binutils/
 sudo docker build -t hopper-readelf .
+cp hopper/examples/binutils/dist/master.sh .
+cp hopper/examples/binutils/dist/node.sh .
 cd ~
