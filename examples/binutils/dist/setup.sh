@@ -15,8 +15,8 @@ then
 fi
 
 # Cleanup docker 
-sudo docker image prune
-sudo docker container prune
+yes | sudo docker image prune
+yes | sudo docker container prune
 
 # Clone and build Hopper
 git clone https://github.com/Cybergenik/hopper.git
