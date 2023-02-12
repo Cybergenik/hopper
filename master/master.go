@@ -5,6 +5,7 @@ import (
     "fmt"
     "log"
     "net"
+    "path"
     "sync"
     "strconv"
     "net/rpc"
@@ -64,33 +65,41 @@ Nodes:          %v
 `
 )
 
+func (h *Hopper) Report() {
+    h.mu.Lock()
+    crashes := "Crashes:\n"
+    for cType, seeds := range h.crashes{
+        crashes += cType + ": "
+        for _, s := range seeds {
+            crashes += "N"+strconv.Itoa(s.NodeId)+" "
+        }
+        crashes += "\n"
+    }
+    report := fmt.Sprintf(
+        EXP,
+        h.havoc,
+        h.seedsN,
+        h.its,
+        h.maxCov.CovEdges,
+        h.crashN,
+        len(h.crashes),
+        len(h.coverage),
+        len(h.nodes),
+        crashes,
+    )
+    out_dir := os.Getenv("HOPPER_OUT")
+    var out string
+    if out_dir != "" {
+        out = path.Join(out_dir, "hopper.report")
+    } else {
+        out = "hopper.report"
+    }
+    os.WriteFile(out, []byte(report), 0666)
+    h.mu.Unlock()
+}
+
 func (h *Hopper) Kill() {
     atomic.StoreInt32(&h.dead, 1)
-    h.mu.Lock()
-    if h.crashN > 0{
-        crashes := "Crashes:\n"
-        for cType, seeds := range h.crashes{
-            crashes += cType + ": "
-            for _, s := range seeds {
-                crashes += "N"+strconv.Itoa(s.NodeId)+" "
-            }
-            crashes += "\n"
-        }
-        report := fmt.Sprintf(
-            EXP,
-            h.havoc,
-            h.seedsN,
-            h.its,
-            h.maxCov.CovEdges,
-            h.crashN,
-            len(h.crashes),
-            len(h.coverage),
-            len(h.nodes),
-            crashes,
-        )
-        os.WriteFile("hopper.report", []byte(report), 0666)
-    }
-    h.mu.Unlock()
 }
 
 func (h *Hopper) Stats() c.Stats{
@@ -144,7 +153,7 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
         NodeId:   update.NodeId,
         CovHash:  update.CovHash,
         CovEdges: update.CovEdges,
-        Bytes:    h.seeds[update.Id].Bytes,    
+        Bytes:    h.seeds[update.Id].Bytes,
         Crash:    update.Crash != "",
     }
     // Dedup based on similar Coverage hash

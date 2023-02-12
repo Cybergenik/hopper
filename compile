@@ -1,14 +1,18 @@
 #!/bin/bash
+#
+# Small script to show what flags hopper requires.
+#
 
-CC="clang++"
-#ASAN
-CC+=" -fsanitize=address"
-CC+=" -fno-omit-frame-pointer"
-# Edge Coverage
-CC+=" -fsanitize-coverage=edge,trace-pc-guard"
-CC+=" -o target"
+# clang-15
+CC="clang"
+CXX="clang++"
 
-$CC -g $1
-
-
+# Symbols, ASAN, Edge Coverage
+CFLAGS=" -g -O0
+         -fsanitize=address
+         -fno-omit-frame-pointer
+         -fsanitize-coverage=edge,trace-pc-guard
+         -o target"
+ 
+$CC $CFLAGS $1
 

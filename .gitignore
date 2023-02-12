@@ -5,6 +5,9 @@
 *.so
 *.dylib
 demo.tape
+install/**
+binutils-*
+build/**
 
 # Test binary, built with `go test -c`
 *.test

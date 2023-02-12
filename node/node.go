@@ -3,6 +3,7 @@ package main
 import (
     "os"
     "os/exec"
+    "path"
     "fmt"
     "log"
     "flag"
@@ -18,12 +19,13 @@ import (
 const SANCOV = "sancov"
 
 type HopperNode struct {
-    name        string
+    loc         string
     id          int
     target      string
     args        string
     env         []string
     stdin       bool
+    raw         bool
     master      string
     crashN      int
     conn        *rpc.Client
@@ -61,7 +63,7 @@ func parseAsan(asan string) string{
 }
 
 func (n *HopperNode) persistCrash(seed []byte, asan bytes.Buffer, crashN int) {
-    out := fmt.Sprintf("%s/crash%d", n.name, crashN)
+    out := path.Join(n.loc, fmt.Sprintf("crash%d", crashN))
     //Write input
     input := bytes.NewBuffer(seed)
     err := os.WriteFile(fmt.Sprintf("%s.in", out), input.Bytes(), 0660)
@@ -71,7 +73,7 @@ func (n *HopperNode) persistCrash(seed []byte, asan bytes.Buffer, crashN int) {
     //Write ASAN data
     report := bytes.NewBufferString("ASAN:\n\n")
     report.Write(asan.Bytes())
-    err = os.WriteFile(fmt.Sprintf("%s.dat", out), report.Bytes(), 0660)
+    err = os.WriteFile(fmt.Sprintf("%s.report", out), report.Bytes(), 0660)
     if err != nil {
         log.Fatal(err)
     }
@@ -97,6 +99,24 @@ func (n *HopperNode) getCov(cov_cmd *exec.Cmd, sancov_file string) ([]string, bo
 func (n *HopperNode) fuzz(t c.FTask) {
     //Run seed
     var fuzzCommand []string
+    var seed string
+    // Should seed be passed in as a file or raw
+    if n.raw {
+        seed = string(t.Seed)
+    } else {
+        f, err := os.CreateTemp("", "hopper.*.in")
+        defer os.Remove(f.Name())
+        if err != nil {
+            log.Fatal(err)
+        }
+        if _, err := f.Write(t.Seed); err != nil {
+            log.Fatal(err)
+        }
+        if err := f.Close(); err != nil {
+            log.Fatal(err)
+        }
+        seed = f.Name()
+    }
     if n.stdin {
         fuzzCommand = strings.Split(n.args, " ")
     } else {
@@ -104,7 +124,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
             strings.Replace(
                 n.args,
                 "@@",
-                string(t.Seed),
+                seed,
                 1,
             ),
             " ",
@@ -163,14 +183,22 @@ func (n *HopperNode) fuzz(t c.FTask) {
     }(update, errOut, n.crashN)
 }
 
-func Node(id int, target string, args string, env string, stdin bool, master string) {
+func Node(id int, target string, args string, raw bool, env string, stdin bool, master string) {
+    out_dir := os.Getenv("HOPPER_OUT")
+    var loc string
+    if out_dir != "" {
+        loc = path.Join(out_dir, fmt.Sprintf("Node%d", id))
+    } else {
+        loc = fmt.Sprintf("Node%d", id)
+    }
     n := HopperNode{
-        name:    fmt.Sprintf("Node%d", id),
+        loc:     loc,
         id:      id,
         target:  target,
         args:    args,
         env:     strings.Split(env, ";"),
         stdin:   stdin,
+        raw:     raw,
         master:  master,
         crashN:  0,
     }
@@ -189,7 +217,7 @@ func Node(id int, target string, args string, env string, stdin bool, master str
     n.conn = c
     defer n.conn.Close()
     // Create node out dir
-    if err := os.MkdirAll(n.name, 0750); err != nil && !os.IsExist(err) {
+    if err := os.MkdirAll(n.loc, 0750); err != nil && !os.IsExist(err) {
         log.Fatal(err)
     }
     //Infinite loop, request Task -> do Task
@@ -204,9 +232,11 @@ func Node(id int, target string, args string, env string, stdin bool, master str
 }
 
 func main() {
+    // HOPPER_OUT="."
     id      := flag.Int("I", 0, "Node ID, usually just a unique int")
     target  := flag.String("T", "", "instrumented target binary")
     args    := flag.String("args", "", "args to use against target, ex: --depth=1 @@")
+    raw     := flag.Bool("raw", false, "should input be fed as pure string (default: input as a file arg)")
     env     := flag.String("env", "", "env variables for target seperated by a `;`, ex: ARG1=foo;ARG2=bar;")
     stdin   := flag.Bool("stdin", false, "seed should be fed as stdin or as an argument")
     master  := flag.String("M", "localhost", "IP/address of Master")
@@ -232,7 +262,7 @@ func main() {
         log.Fatalf("Hopper Node: Node requires clang-tools utils: sanvoc")
 	}
     masterNode := fmt.Sprintf("%s:%d", *master, *port)
-    Node(*id, *target, *args, *env, *stdin, masterNode)
+    Node(*id, *target, *args, *raw, *env, *stdin, masterNode)
 }
 
 func (n *HopperNode) call(rpcname string, args interface{}, reply interface{}) bool {

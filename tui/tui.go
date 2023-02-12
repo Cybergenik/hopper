@@ -60,7 +60,6 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -68,6 +67,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			fmt.Println("Killing Hopper")
 			m.master.Kill()
 			return m, tea.Quit
+		case tea.KeySpace:
+			m.master.Report()
+			return m, nil
 		}
 	case TickMsg:
         m.oldStats = m.stats
@@ -93,6 +95,7 @@ func (m Model) View() string {
     	      %s    %s    %s
     	      %s    %s    %s
     
+		    %s
 		    %s
         `,
 		labelstyle.Width(70).Render(HOPPER),
@@ -123,9 +126,9 @@ func (m Model) View() string {
 		datastyle.Width(15).Render(strconv.Itoa(m.stats.UniqueCrashes)),
 		datastyle.Width(13).Render(strconv.Itoa(m.stats.UniquePaths)),
 		// Quit
+		substyle.Width(30).Render("Press Space to Generate Report"),
 		substyle.Width(30).Render("Press Esc or Ctrl+C to quit"),
 	)
-
 	return body
 }
 
