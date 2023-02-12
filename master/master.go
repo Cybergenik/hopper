@@ -140,12 +140,12 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
     if _, ok := h.seeds[update.Id]; !ok && h.seeds[update.Id].NodeId != -1 {
         return nil
     }
+    h.its++
     // Dump Failed seeds
     if !update.Ok {
         delete(h.seeds, update.Id)
         return nil
     }
-    h.its++
     h.seeds[update.Id] = c.Seed{
         NodeId:   update.NodeId,
         CovHash:  update.CovHash,
@@ -162,7 +162,14 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
             h.crashes[update.Crash] = append(h.crashes[update.Crash], h.seeds[update.Id])
         }
     }
-    go h.energyMutate(h.seeds[update.Id], h.maxCov.CovEdges)
+    //Mutate seed
+    s := h.seeds[update.Id]
+    go h.energyMutate(s.Bytes, s.CovEdges, s.Crash, h.maxCov.CovEdges)
+
+    //Free mutated seed
+    s.Bytes = nil
+    h.seeds[update.Id] = s
+
     if update.CovEdges > h.maxCov.CovEdges{
         h.maxCov = h.seeds[update.Id]
     }
@@ -172,25 +179,24 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
     return nil
 }
 
-func (h *Hopper) energyMutate(seed c.Seed, maxEdges int){
+func (h *Hopper) energyMutate(seed []byte, covEdges int, crash bool, maxEdges int) {
     //Baseline .01% of available queue capacity
     baseline := int(float32(cap(h.qChan) - len(h.qChan)) * float32(.001))
     mutN := 0
-    covDiff := seed.CovEdges - maxEdges
+    covDiff := covEdges - maxEdges
     if covDiff >= 0 {
         mutN = baseline*(covDiff+1)
     } else {
-        mutN = int(float32(baseline)*float32(seed.CovEdges/(maxEdges+1)))
+        mutN = int(float32(baseline)*float32(covEdges/(maxEdges+1)))
     }
-    if seed.Crash {
+    if crash {
         mutN += baseline
     }
     for i:=0;i<mutN;i++{
-        for ok := h.addSeed(h.mutf(seed.Bytes, h.havoc)); !ok; {
-            ok = h.addSeed(h.mutf(seed.Bytes, h.havoc))
+        for ok := h.addSeed(h.mutf(seed, h.havoc)); !ok; {
+            ok = h.addSeed(h.mutf(seed, h.havoc))
         }
     }
-    seed.Bytes = nil
 }
 
 func (h *Hopper) addSeed(seed []byte) bool{
