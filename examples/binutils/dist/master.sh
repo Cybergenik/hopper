@@ -7,7 +7,7 @@
 export HOPPER_OUT="/hopper_out"
 LOCAL_OUT="/proj/hopper-tests-PG0/readelf-dat"
 
-screen -S master -d -m docker run -it --rm \
+screen -S master -dm docker run -it --rm \
     --name hopper-master \
     --env TERM \
     --env HOPPER_OUT \

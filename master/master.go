@@ -138,14 +138,9 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
     if _, ok := h.seeds[update.Id]; !ok && h.seeds[update.Id].NodeId != -1 {
         return nil
     }
-    // Retry Failed seeds
+    // Dump Failed seeds
     if !update.Ok {
-        go func(seed []byte, seedHash uint64){
-            h.qChan<-c.FTask{
-                Id:       seedHash,
-                Seed:     seed,
-            }
-        }(h.seeds[update.Id].Bytes, update.Id)
+        delete(h.seeds, update.Id)
         return nil
     }
     h.its++
@@ -189,10 +184,11 @@ func (h *Hopper) energyMutate(seed c.Seed, maxEdges int){
         mutN += baseline
     }
     for i:=0;i<mutN;i++{
-        for ok := h.addSeed(h.mutf(seed.Bytes, h.havoc)); !ok; {
-            ok = h.addSeed(h.mutf(seed.Bytes, h.havoc))
+        for ok := h.addSeed(h.mutf(*seed.Bytes, h.havoc)); !ok; {
+            ok = h.addSeed(h.mutf(*seed.Bytes, h.havoc))
         }
     }
+    seed.Bytes = nil
 }
 
 func (h *Hopper) addSeed(seed []byte) bool{
@@ -205,7 +201,7 @@ func (h *Hopper) addSeed(seed []byte) bool{
     h.seedsN++
     h.seeds[seedHash] = c.Seed{
         NodeId:   -1,
-        Bytes:    seed,
+        Bytes:    &seed,
         CovHash:  0,
         CovEdges: -1,
     }

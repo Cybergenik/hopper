@@ -12,7 +12,7 @@ func Hash(b []byte) uint64{
 
 type Seed struct {
     NodeId      int
-    Bytes       []byte
+    Bytes       *[]byte
     CovHash     uint64
     CovEdges    int
     Crash       bool
