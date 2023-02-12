@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## Spawn Nodes
-export HOPPER_OUT="/hopper_out"
+export HOPPER_OUT="/proj/hopper-tests-PG0/readelf-dat"
 MASTER_IP="amd171.utah.cloudlab.us"
 PORT="6969"
 

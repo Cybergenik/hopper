@@ -4,7 +4,7 @@
 # Detach: Ctrl-a Ctrl-d
 # Attach: screen -r <pid>.master
 ## Spawn Master
-export HOPPER_OUT="/hopper_out"
+export HOPPER_OUT="/proj/hopper-tests-PG0/readelf-dat"
 screen -S master -d -m docker run -it --rm \
     --name hopper-master \
     --env TERM \
