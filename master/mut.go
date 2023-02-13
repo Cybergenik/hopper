@@ -41,6 +41,9 @@ func main(){
 
 func Mutator(b []byte, havoc int) []byte {
     rand.Seed(time.Now().UnixNano())
+    if len(b) == 0 {
+        panic("received empty seed")
+    }
     bytes := append([]byte{}, b...)
     for i:=0; i<havoc;i++{
         switch rand.Intn(N){

@@ -164,41 +164,40 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
             h.crashes[update.Crash] = append(h.crashes[update.Crash], h.seeds[update.Id])
         }
     }
-    //Mutate seed
-    s := h.seeds[update.Id]
-    go h.energyMutate(s.Bytes, s.CovEdges, s.Crash, h.maxCov.CovEdges)
 
-    //Free mutated seed
-    s.Bytes = nil
-    h.seeds[update.Id] = s
-
-    if update.CovEdges > h.maxCov.CovEdges{
-        h.maxCov = h.seeds[update.Id]
-    }
+    // Update Crash count
     if (update.Crash != "") {
         h.crashN++
     }
+    // Update Max Coverage edges
+    if update.CovEdges > h.maxCov.CovEdges{
+        h.maxCov = h.seeds[update.Id]
+    }
+    // Mutate seed
+    go h.energyMutate(update.Id, h.seeds[update.Id], h.maxCov.CovEdges)
+
     return nil
 }
 
-func (h *Hopper) energyMutate(seed []byte, covEdges int, crash bool, maxEdges int) {
-    //Baseline .01% of available queue capacity
-    baseline := int(float32(cap(h.qChan) - len(h.qChan)) * float32(.01))
-    mutN := 0
-    covDiff := covEdges - maxEdges
-    if covDiff >= 0 {
-        mutN = baseline*(covDiff+1)
-    } else {
-        mutN = int(float32(baseline)*float32(covEdges/(maxEdges+1)))
+func (h *Hopper) energyMutate(id c.HashID, seed c.Seed, maxEdges int) {
+    //Baseline .01% of total queue capacity
+    baseline := float32(cap(h.qChan))*float32(.01)
+    //Scalar of available queue capacity
+    qSizeScalar := float32(cap(h.qChan)-len(h.qChan))/float32(cap(h.qChan))
+    mutN := baseline * qSizeScalar
+    if !seed.Crash {
+        mutN *= float32(seed.CovEdges)/float32(maxEdges)
     }
-    if crash {
-        mutN += baseline
-    }
-    for i:=0;i<mutN;i++{
-        for ok := h.addSeed(h.mutf(seed, h.havoc)); !ok; {
-            ok = h.addSeed(h.mutf(seed, h.havoc))
+    for i:=0;i<int(mutN);i++{
+        for ok := h.addSeed(h.mutf(seed.Bytes, h.havoc)); !ok; {
+            ok = h.addSeed(h.mutf(seed.Bytes, h.havoc))
         }
     }
+    // Free mutated seed
+    h.mu.Lock()
+    seed.Bytes = nil
+    h.seeds[id] = seed
+    h.mu.Unlock()
 }
 
 func (h *Hopper) addSeed(seed []byte) bool{
@@ -216,13 +215,7 @@ func (h *Hopper) addSeed(seed []byte) bool{
         CovEdges: -1,
     }
     h.mu.Unlock()
-    if len(h.qChan) == cap(h.qChan) {
-        go func(seedHash c.HashID){
-            h.qChan <- seedHash
-        }(seedHash)
-    } else {
-        h.qChan <- seedHash
-    }
+    h.qChan <- seedHash
     return true
 }
 
