@@ -173,13 +173,16 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
     if update.CovEdges > h.maxCov.CovEdges{
         h.maxCov = h.seeds[update.Id]
     }
-    // Mutate seed
-    go h.energyMutate(update.Id, h.seeds[update.Id], h.maxCov.CovEdges)
+    // Mutate and Free seed
+	s := h.seeds[update.Id]
+    go h.energyMutate(s, h.maxCov.CovEdges)
+    s.Bytes = nil
+    h.seeds[update.Id] = s
 
     return nil
 }
 
-func (h *Hopper) energyMutate(id c.HashID, seed c.Seed, maxEdges int) {
+func (h *Hopper) energyMutate(seed c.Seed, maxEdges int) {
     //Baseline .01% of total queue capacity
     baseline := float32(cap(h.qChan))*float32(.01)
     //Scalar of available queue capacity
@@ -193,11 +196,6 @@ func (h *Hopper) energyMutate(id c.HashID, seed c.Seed, maxEdges int) {
             ok = h.addSeed(h.mutf(seed.Bytes, h.havoc))
         }
     }
-    // Free mutated seed
-    h.mu.Lock()
-    seed.Bytes = nil
-    h.seeds[id] = seed
-    h.mu.Unlock()
 }
 
 func (h *Hopper) addSeed(seed []byte) bool{
