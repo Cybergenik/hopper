@@ -14,7 +14,7 @@ docker run -it --rm \
     --network hopper-subnet \
     --publish 6969:6969 \
     hopper-readelf:latest \
-    bash -c "cd hopper; go build .; ./hopper -I ./examples/binutils/readelf/in -H=5"
+    bash -c "cd hopper; go build .; ./hopper -I ./examples/binutils/readelf/in -H=20"
 ## Clean up subnet
 docker network rm hopper-subnet &> /dev/null
 

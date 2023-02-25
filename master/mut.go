@@ -20,7 +20,7 @@ const (
     ROT = 6
 )
 
-func main(){
+func main_(){
     if len(os.Args) < 2 {
         fmt.Println("Usage: go run mut.go -N <number of mutations> <input file> ")
         os.Exit(1)

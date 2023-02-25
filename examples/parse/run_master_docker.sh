@@ -3,7 +3,6 @@
 # sudo docker build -t hopper-node .
 ## Create Hopper subnet
 docker network create hopper-subnet &> /dev/null
-mkdir hopper_out
 export HOPPER_OUT="/hopper_out"
 ## Spawn Master
 docker run -it --rm \

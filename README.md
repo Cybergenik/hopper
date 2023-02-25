@@ -35,6 +35,10 @@ distributed environments, it's not meant to replace AFL++ in most cases.
 Ex:
 > `./compile target.c`
 
+#### Env:
+- `HOPPER_OUT`: path to where to save output seeds in the case of the Node or
+  the hopper report in the case of the Master. (defaults to `.`)
+
 #### Master:
 
 - <kbd>-I</kbd>: Path to input corpus, directory containing files each being a
@@ -52,6 +56,8 @@ Ex:
 - <kbd>-T</kbd>: Path to instrumented target binary
 - <kbd>-M</kbd>: IP/address of Master, defaults to `localhost`
 - <kbd>-P</kbd>: Port of Master, defaults to `6969`
+- <kbd>--raw</kbd>: Should seed be fed directly in the run command, defaults to
+  `false`. Hopper will put bytes in a file and feed that file to target.
 - <kbd>--args</kbd>: Args to use against target, ex: `--depth=1 @@`
 - <kbd>--env</kbd>: Env variables for target seperated by a `;`, ex:
   `ENV1=foo;ENV2=bar;`
@@ -70,8 +76,8 @@ with a known vulnerability you can do the following:
 
 1. Clone project: `git clone https://github.com/Cybergenik/hopper.git && cd hopper`
 2. Build Image: `docker build -t hopper-node .`
-3. Run Master: `./examples/run_master_docker.sh` 
-4. Run Nodes: `./examples/run_node_docker.sh 1 10` (I'd recommend no more than 1.5x # of logical cores on your machine, any more
+3. Run Master: `./examples/parse/run_master_docker.sh` 
+4. Run Nodes: `./examples/parse/run_node_docker.sh 1 10` (I'd recommend no more than 1.5x # of logical cores on your machine, any more
 nodes on one system and they just get throttled and competing for CPU time)
 5. Look at the nice TUI :>
 
