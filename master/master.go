@@ -6,10 +6,12 @@ import (
     "log"
     "net"
     "path"
+    "math"
     "sync"
     "strconv"
     "net/rpc"
     "net/http"
+	"container/heap"
     "sync/atomic"
 
     c "github.com/Cybergenik/hopper/common"
@@ -21,8 +23,12 @@ type Hopper struct {
     havoc    int
     // seeds and Cov mutex
     mu       sync.Mutex
+    // PQ mutex
+    pqMu     sync.Mutex
     // Mutation function
     mutf     func ([]byte, int) []byte
+    // PQ of seeds
+    pq       PriorityQueue
     // seed map, used as set for deduping seeds and keeping track of Crashes
     seeds    map[c.HashID]c.Seed
     // cov map, used as set for deduping same coverage seeds
@@ -164,9 +170,8 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
             h.crashes[update.Crash] = append(h.crashes[update.Crash], h.seeds[update.Id])
         }
     }
-    //Mutate seed
     s := h.seeds[update.Id]
-    go h.energyMutate(s.Bytes, s.CovEdges, s.Crash, h.maxCov.CovEdges)
+    go h.energyMutate(s, update.Id, h.maxCov.CovEdges)
 
     //Free mutated seed
     s.Bytes = nil
@@ -181,26 +186,48 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
     return nil
 }
 
-func (h *Hopper) energyMutate(seed []byte, covEdges int, crash bool, maxEdges int) {
-    //Baseline .01% of available queue capacity
-    baseline := int(float32(cap(h.qChan) - len(h.qChan)) * float32(.01))
-    mutN := 0
-    covDiff := covEdges - maxEdges
-    if covDiff >= 0 {
-        mutN = baseline*(covDiff+1)
-    } else {
-        mutN = int(float32(baseline)*float32(covEdges/(maxEdges+1)))
-    }
-    if crash {
-        mutN += baseline
-    }
-    for i:=0;i<mutN;i++{
-        for ok := h.addSeed(h.mutf(seed, h.havoc)); !ok; {
-            ok = h.addSeed(h.mutf(seed, h.havoc))
+func (h *Hopper) mutGenerator() {
+    for !h.killed() {
+        availableCap := cap(h.qChan) - len(h.qChan)
+        if h.pq.Len() > 0 && availableCap >= int(cap(h.qChan)/2) {
+            //Baseline .01% of available queue capacity
+            baseline := float64(availableCap) * .01
+            
+            h.pqMu.Lock()
+            energyItem := heap.Pop(&h.pq).(*PQItem)
+            h.pqMu.Unlock()
+            mutN := int(math.Max(1, energyItem.Energy * baseline))
+            //fmt.Printf("baseline: %.2f * energy: %.2f = %d", baseline, energyItem.Energy, mutN)
+            for i:=0;i<mutN;i++{
+                for ok := h.addSeed(h.mutf(energyItem.Seed, h.havoc)); !ok; {
+                    ok = h.addSeed(h.mutf(energyItem.Seed, h.havoc))
+                }
+            }
         }
     }
 }
 
+func (h *Hopper) energyMutate(seed c.Seed, seedHash c.HashID, maxEdges int) {
+    // Energy Range: [0, 1]
+    energy := math.Min(1, float64(seed.CovEdges)/float64(maxEdges))
+    if seed.Crash {
+        energy += 1
+    }
+    h.pqMu.Lock()
+    heap.Push(
+        &h.pq,
+        &PQItem{
+            Id:       seedHash,
+            Seed:     seed.Bytes,
+            Energy:   energy,
+            priority: energy,
+        },
+    )
+    h.pqMu.Unlock()
+}
+
+// addSeed is by design blocking, we want to block the production of new seeds
+// until there is enough space in the Queue
 func (h *Hopper) addSeed(seed []byte) bool{
     seedHash := c.Hash(seed)
     h.mu.Lock()
@@ -216,13 +243,7 @@ func (h *Hopper) addSeed(seed []byte) bool{
         CovEdges: -1,
     }
     h.mu.Unlock()
-    if len(h.qChan) == cap(h.qChan) {
-        go func(seedHash c.HashID){
-            h.qChan <- seedHash
-        }(seedHash)
-    } else {
-        h.qChan <- seedHash
-    }
+    h.qChan <- seedHash
     return true
 }
 
@@ -244,6 +265,7 @@ func InitHopper(havocN int, port int, mutf func([]byte, int) []byte, corpus [][]
     h := Hopper{
         havoc:    havocN,
         mutf:     mutf,
+        pq:       PriorityQueue{},
         seeds:    make(map[c.HashID]c.Seed),
         coverage: make(map[c.HashID]bool),
         crashes:  make(map[string][]c.Seed),
@@ -261,8 +283,12 @@ func InitHopper(havocN int, port int, mutf func([]byte, int) []byte, corpus [][]
     for _, seed := range corpus {
         h.addSeed(seed)
     }
+    
+    heap.Init(&h.pq)
+    // Spawn Energy Mutation Generator
+    go h.mutGenerator()
 
-    //Spawn RPC server
+    // Spawn RPC server
     h.rpcServer()
 
     return &h

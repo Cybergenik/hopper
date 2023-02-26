@@ -1,20 +1,22 @@
 package master
 
 import (
-	"container/heap"
 	"fmt"
+    "container/heap"
     c "github.com/Cybergenik/hopper/common"
 )
 
 // An Item is something we manage in a priority queue.
-type Item struct {
-    value    c.HashID
-	priority float32
-	index int
+type PQItem struct {
+    Seed     []byte
+    Energy   float64
+    Id       c.HashID
+	priority float64
+	index    int
 }
 
 // A PriorityQueue implements heap.Interface and holds Items.
-type PriorityQueue []*Item
+type PriorityQueue []*PQItem
 
 func (pq PriorityQueue) Len() int { return len(pq) }
 // Max heap
@@ -28,7 +30,7 @@ func (pq PriorityQueue) Swap(i, j int) {
 
 func (pq *PriorityQueue) Push(x any) {
 	n := len(*pq)
-	item := x.(*Item)
+	item := x.(*PQItem)
 	item.index = n
 	*pq = append(*pq, item)
 }
@@ -51,16 +53,16 @@ func main() {
 	pq := PriorityQueue{}
 	heap.Init(&pq)
 	// Insert a new item and then modify its priority.
-	item1 := &Item{
-		value:    321321,
+	item1 := &PQItem{
+		Id:    321321,
 		priority: 3,
 	}
-	item2 := &Item{
-		value:    22121,
+	item2 := &PQItem{
+		Id:    22121,
 		priority: 10,
 	}
-	item3 := &Item{
-		value:    2199918,
+	item3 := &PQItem{
+		Id:    2199918,
 		priority: 7,
 	}
 	heap.Push(&pq, item1)
@@ -69,7 +71,7 @@ func main() {
 
 	// Take the items out; they arrive in decreasing priority order.
 	for pq.Len() > 0 {
-		item := heap.Pop(&pq).(*Item)
-		fmt.Printf("%.2d:%d \n", item.priority, item.value)
+		item := heap.Pop(&pq).(*PQItem)
+		fmt.Printf("%.2f:%d \n", item.priority, item.Id)
 	}
 }

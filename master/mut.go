@@ -41,8 +41,11 @@ func main_(){
 
 func Mutator(b []byte, havoc int) []byte {
     rand.Seed(time.Now().UnixNano())
+    if len(b) == 0 {
+        panic("Tried to mutate 0 bytes")
+    }
     bytes := append([]byte{}, b...)
-    for i:=0; i<havoc;i++{
+    for i:=0; i<havoc;{
         switch rand.Intn(N){
         case MUT:
             i := rand.Intn(len(bytes))
@@ -50,9 +53,16 @@ func Mutator(b []byte, havoc int) []byte {
             rand.Read(rval)
             bytes[i] = rval[0]
         case DEL:
+            if len(bytes) == 1 {
+                continue
+            }
             i := rand.Intn(len(bytes))
             bytes = append(bytes[:i], bytes[i+1:]...)
         case ADD:
+            // Cap adding bytes if seed is over 1MB
+            if len(bytes) >= 1000000 {
+                continue
+            }
             i := rand.Intn(len(bytes))
             rval := make([]byte, 1)
             rand.Read(rval)
@@ -72,6 +82,7 @@ func Mutator(b []byte, havoc int) []byte {
             i := rand.Intn(len(bytes))
             bytes[i] = bits.Reverse8(bytes[i])
         }
+        i++
     }
     return bytes
 }
