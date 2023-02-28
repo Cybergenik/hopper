@@ -173,6 +173,7 @@ func Node(id uint64, target string, args string, raw bool, env string, stdin boo
     for {
         ftask, ok := n.getFTask()
         if !ok || ftask.Die {
+            log.Printf("Killing Node")
             return
         }
         n.fuzz(ftask)

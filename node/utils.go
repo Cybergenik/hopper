@@ -10,6 +10,9 @@ import (
     "os/exec"
 )
 
+//Deb sid: "sancov-15"
+const SANCOV = "sancov"
+
 func ParseAsan(asan string) string{
     asan_lines := strings.Split(asan, "\n")
     for _, line := range asan_lines {
@@ -37,9 +40,6 @@ func PersistCrash(seed []byte, asan bytes.Buffer, crashN uint64, outDir string) 
         log.Fatal(err)
     }
 }
-
-//Deb sid: "sancov-15"
-const SANCOV = "sancov"
 
 func GetCoverage(sancov_file string) ([]string, bool){
     cov_cmd := exec.Command(SANCOV,

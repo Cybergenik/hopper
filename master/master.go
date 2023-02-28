@@ -81,7 +81,7 @@ func (h *Hopper) Report() {
     for cType, nodes := range h.crashes{
         crashes += cType + ": "
         for _, node := range nodes {
-            crashes += fmt.Sprintf("N %d ", node)
+            crashes += fmt.Sprintf("Node%d ", node)
         }
         crashes += "\n"
     }
