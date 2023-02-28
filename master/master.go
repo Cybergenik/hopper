@@ -8,7 +8,6 @@ import (
     "path"
     "math"
     "sync"
-    "strconv"
     "net/rpc"
     "net/http"
 	"container/heap"
@@ -20,35 +19,39 @@ import (
 
 type Hopper struct {
     // Havoc level to use in mutator
-    havoc    int
+    havoc       uint64
     // seeds and Cov mutex
-    mu       sync.Mutex
+    mu          sync.Mutex
     // PQ mutex
-    pqMu     sync.Mutex
+    pqMu        sync.Mutex
     // Mutation function
-    mutf     func ([]byte, int) []byte
+    mutf        func ([]byte, uint64) []byte
     // PQ of seeds
-    pq       PriorityQueue
-    // seed map, used as set for deduping seeds and keeping track of Crashes
-    seeds    map[c.HashID]c.Seed
-    // cov map, used as set for deduping same coverage seeds
-    coverage  map[c.HashID]bool
+    pq          *PriorityQueue
+    // seed map, used as temporary rotating buffer while seeds are being fuzzed.
+    // Seeds exist ephemerally
+    seeds       map[c.FTaskID][]byte
+    // Seed BloomFilter, used as a set for deduping seeds
+    seedBF      *BloomFilter
+    // Coverage BloomFilter, used as set for deduping same coverage seeds
+    coverageBF  *BloomFilter
     // Coverage per number of nodes
-    crashes  map[string][]c.Seed
+    crashes     map[string][]uint64
     // Max Coverage in terms of edges
-    maxCov   c.Seed
+    maxCov      uint64
     // Port to host RPC
-    port     int
+    port        int
     // Queue Channel to add new seeds based on energy
-    qChan    chan c.HashID
+    qChan       chan c.FTaskID
     // Keeps track of whether Hopper has been killed
-    dead     int32
+    dead        int32
     // Node IDs
-    nodes    map[int]interface{}
+    nodes       map[uint64]bool
     //Stats
-    its      int
-    crashN   int
-    seedsN   int
+    its         uint64
+    crashN      uint64
+    seedsN      uint64
+    paths       uint64
 }
 
 const (
@@ -75,10 +78,10 @@ Nodes:          %v
 func (h *Hopper) Report() {
     h.mu.Lock()
     crashes := "Crashes:\n"
-    for cType, seeds := range h.crashes{
+    for cType, nodes := range h.crashes{
         crashes += cType + ": "
-        for _, s := range seeds {
-            crashes += "N"+strconv.Itoa(s.NodeId)+" "
+        for _, node := range nodes {
+            crashes += fmt.Sprintf("Node%d ", node)
         }
         crashes += "\n"
     }
@@ -87,10 +90,10 @@ func (h *Hopper) Report() {
         h.havoc,
         h.seedsN,
         h.its,
-        h.maxCov.CovEdges,
+        h.maxCov,
         h.crashN,
         len(h.crashes),
-        len(h.coverage),
+        h.paths,
         len(h.nodes),
         crashes,
     )
@@ -118,9 +121,9 @@ func (h *Hopper) Stats() c.Stats{
         Havoc:         h.havoc,
         CrashN:        h.crashN,
         SeedsN:        h.seedsN,
-        MaxSeed:       h.maxCov,
+        MaxCov:        h.maxCov,
         UniqueCrashes: len(h.crashes),
-        UniquePaths:   len(h.coverage),
+        UniquePaths:   h.paths,
         Nodes:         len(h.nodes),
     }
 }
@@ -134,7 +137,7 @@ func (h *Hopper) GetFTask(args *c.FTaskArgs, task *c.FTask) error {
     seedHash := <-h.qChan 
     task.Id = seedHash
     h.mu.Lock()
-    task.Seed = h.seeds[seedHash].Bytes
+    task.Seed = h.seeds[seedHash]
     h.mu.Unlock()
     task.Die = h.killed()
     return nil
@@ -143,9 +146,9 @@ func (h *Hopper) GetFTask(args *c.FTaskArgs, task *c.FTask) error {
 func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error {
     h.mu.Lock()
     defer h.mu.Unlock()
-    h.nodes[update.NodeId] = nil
-    // None unique or invalid seed
-    if _, ok := h.seeds[update.Id]; !ok && h.seeds[update.Id].NodeId != -1 {
+    h.nodes[update.NodeId] = true
+    // Check if seed in rotating Task buffer, has it already been processed
+    if _, ok := h.seeds[update.Id]; !ok {
         return nil
     }
     h.its++
@@ -154,35 +157,34 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
         delete(h.seeds, update.Id)
         return nil
     }
-    h.seeds[update.Id] = c.Seed{
-        NodeId:   update.NodeId,
-        CovHash:  update.CovHash,
-        CovEdges: update.CovEdges,
-        Bytes:    h.seeds[update.Id].Bytes,
-        Crash:    update.Crash != "",
-    }
     // Dedup based on similar Coverage hash
-    if !h.coverage[update.CovHash]{
-        h.coverage[update.CovHash] = true
+    if !h.coverageBF.ContainsHash(update.CovHash){
+        h.coverageBF.AddHash(update.CovHash)
         // Found Unique crash, tell node to Log
         if (update.Crash != "") {
             reply.Log = true
-            h.crashes[update.Crash] = append(h.crashes[update.Crash], h.seeds[update.Id])
+            h.crashes[update.Crash] = append(h.crashes[update.Crash], update.NodeId)
         }
     }
-    s := h.seeds[update.Id]
-    go h.energyMutate(s, update.Id, h.maxCov.CovEdges)
-
-    //Free mutated seed
-    s.Bytes = nil
-    h.seeds[update.Id] = s
-
-    if update.CovEdges > h.maxCov.CovEdges{
-        h.maxCov = h.seeds[update.Id]
+    s := c.SeedInfo{
+        NodeId:   update.NodeId,
+        Id:       update.Id,
+        CovHash:  update.CovHash,
+        CovEdges: update.CovEdges,
+        Bytes:    h.seeds[update.Id],
+        Crash:    update.Crash != "",
     }
+    go h.energyMutate(s, h.maxCov)
+
     if (update.Crash != "") {
         h.crashN++
     }
+    if update.CovEdges > h.maxCov{
+        h.maxCov = s.CovEdges
+    }
+    //Free mutated seed
+    h.seeds[update.Id] = nil
+    delete(h.seeds, update.Id)
     return nil
 }
 
@@ -194,7 +196,7 @@ func (h *Hopper) mutGenerator() {
             baseline := float64(availableCap) * .01
             
             h.pqMu.Lock()
-            energyItem := heap.Pop(&h.pq).(*PQItem)
+            energyItem := heap.Pop(h.pq).(*PQItem)
             h.pqMu.Unlock()
             mutN := int(math.Max(1, energyItem.Energy * baseline))
             //fmt.Printf("baseline: %.2f * energy: %.2f = %d", baseline, energyItem.Energy, mutN)
@@ -207,17 +209,17 @@ func (h *Hopper) mutGenerator() {
     }
 }
 
-func (h *Hopper) energyMutate(seed c.Seed, seedHash c.HashID, maxEdges int) {
-    // Energy Range: [0, 1]
+func (h *Hopper) energyMutate(seed c.SeedInfo, maxEdges uint64) {
+    // Energy Range: (0, 1]
     energy := math.Min(1, float64(seed.CovEdges)/float64(maxEdges))
     if seed.Crash {
         energy += 1
     }
     h.pqMu.Lock()
     heap.Push(
-        &h.pq,
+        h.pq,
         &PQItem{
-            Id:       seedHash,
+            Id:       seed.Id,
             Seed:     seed.Bytes,
             Energy:   energy,
             priority: energy,
@@ -229,19 +231,14 @@ func (h *Hopper) energyMutate(seed c.Seed, seedHash c.HashID, maxEdges int) {
 // addSeed is by design blocking, we want to block the production of new seeds
 // until there is enough space in the Queue
 func (h *Hopper) addSeed(seed []byte) bool{
-    seedHash := c.Hash(seed)
-    h.mu.Lock()
-    if _, ok := h.seeds[seedHash]; ok {
-        h.mu.Unlock()
+    if h.seedBF.Contains(seed) {
         return false
     }
+    h.seedBF.Add(seed)
+    seedHash := c.Hash(seed)
+    h.mu.Lock()
     h.seedsN++
-    h.seeds[seedHash] = c.Seed{
-        NodeId:   -1,
-        Bytes:    seed,
-        CovHash:  0,
-        CovEdges: -1,
-    }
+    h.seeds[seedHash] = seed
     h.mu.Unlock()
     h.qChan <- seedHash
     return true
@@ -253,7 +250,7 @@ func (h *Hopper) rpcServer(){
     config := &net.ListenConfig{
         KeepAlive: 0,
     }
-    l, e := config.Listen(nil, "tcp", ":"+strconv.Itoa(h.port))
+    l, e := config.Listen(nil, "tcp", fmt.Sprintf(":%d", h.port))
     //l, e := net.Listen("tcp", ":"+strconv.Itoa(h.port))
     if e != nil {                              
         log.Fatal("listen error:", e)
@@ -261,30 +258,31 @@ func (h *Hopper) rpcServer(){
     go http.Serve(l, nil)                         
 }
 
-func InitHopper(havocN int, port int, mutf func([]byte, int) []byte, corpus [][]byte) *Hopper{
+func InitHopper(havocN uint64, port int, mutf func([]byte, uint64) []byte, corpus [][]byte) *Hopper{
     h := Hopper{
-        havoc:    havocN,
-        mutf:     mutf,
-        pq:       PriorityQueue{},
-        seeds:    make(map[c.HashID]c.Seed),
-        coverage: make(map[c.HashID]bool),
-        crashes:  make(map[string][]c.Seed),
-        maxCov:   c.Seed{},
-        port:     port,
-        nodes:    make(map[int]interface{}),
+        havoc:      havocN,
+        mutf:       mutf,
+        pq:         &PriorityQueue{},
+        seeds:      make(map[c.FTaskID][]byte),
+        seedBF:     NewWithEstimates(100_000_000, .001),
+        coverageBF: NewWithEstimates(100_000_000, .001),
+        crashes:    make(map[string][]uint64),
+        maxCov:     0,
+        port:       port,
+        nodes:      make(map[uint64]bool),
         //TODO: consider using circular buffer: container/ring
-        qChan:    make(chan c.HashID, 10000),
-        dead:     0,
-        its:      0,
-        crashN:   0,
-        seedsN:   0,
+        qChan:      make(chan c.FTaskID, 10000),
+        dead:       0,
+        its:        0,
+        crashN:     0,
+        seedsN:     0,
     }
 
     for _, seed := range corpus {
         h.addSeed(seed)
     }
     
-    heap.Init(&h.pq)
+    heap.Init(h.pq)
     // Spawn Energy Mutation Generator
     go h.mutGenerator()
 

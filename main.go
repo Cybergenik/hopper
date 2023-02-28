@@ -45,7 +45,7 @@ func readCorpus(path string) [][]byte {
 func main() {
     help := flag.Bool("help", false, "help menu")
     input := flag.String("I", "", "path to input corpus, directory containing files each being a seed")
-    havoc := flag.Int("H", 1, "Havoc level to use in mutator, defaults to 1")
+    havoc := flag.Uint64("H", 1, "Havoc level to use in mutator, defaults to 1")
     port := flag.Int("P", 6969, "Port to use, defaults to :6969")
     //TODO: impl thread mode, shouldn't be too hard
     //thread_mode := flag.Bool("T", false, "Port to use, defaults to :6969")

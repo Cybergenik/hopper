@@ -11,23 +11,20 @@ import (
     "path/filepath"
     "net/rpc"
     "bytes"
-    "github.com/tidwall/gjson"
+
     c "github.com/Cybergenik/hopper/common"
 )
 
-//Deb sid: "sancov-15"
-const SANCOV = "sancov"
-
 type HopperNode struct {
-    loc         string
-    id          int
+    outDir      string
+    id          uint64
     target      string
     args        string
     env         []string
     stdin       bool
     raw         bool
     master      string
-    crashN      int
+    crashN      uint64
     conn        *rpc.Client
 }
 
@@ -51,51 +48,6 @@ func (n *HopperNode) updateFTask(ut c.UpdateFTask) bool {
     return reply.Log
 }
 
-func parseAsan(asan string) string{
-    asan_lines := strings.Split(asan, "\n")
-    for _, line := range asan_lines {
-        sline := strings.Split(line, " ")
-        if sline[0] == "SUMMARY:"{
-            return sline[2]
-        }
-    }
-    return ""
-}
-
-func (n *HopperNode) persistCrash(seed []byte, asan bytes.Buffer, crashN int) {
-    out := path.Join(n.loc, fmt.Sprintf("crash%d", crashN))
-    //Write input
-    input := bytes.NewBuffer(seed)
-    err := os.WriteFile(fmt.Sprintf("%s.in", out), input.Bytes(), 0660)
-    if err != nil {
-        log.Fatal(err)
-    }
-    //Write ASAN data
-    report := bytes.NewBufferString("ASAN:\n\n")
-    report.Write(asan.Bytes())
-    err = os.WriteFile(fmt.Sprintf("%s.report", out), report.Bytes(), 0660)
-    if err != nil {
-        log.Fatal(err)
-    }
-}
-
-func (n *HopperNode) getCov(cov_cmd *exec.Cmd, sancov_file string) ([]string, bool){
-    var out bytes.Buffer
-    cov_cmd.Stdout = &out
-    if err := cov_cmd.Run(); err != nil {
-        return nil, false
-    }
-    go os.Remove(sancov_file)
-    // Coverage tree parsing
-    covered := gjson.Get(out.String(), "covered-points").Array()
-    cov_s := []string{}
-    for _, v := range covered {
-        edge := gjson.Get(out.String(), fmt.Sprintf("point-symbol-info.*.*.%v", v.Value()))
-        cov_s = append(cov_s, fmt.Sprintf("%s", edge.Value()))
-    }
-    return cov_s, true
-}
-
 func (n *HopperNode) fuzz(t c.FTask) {
     //Run seed
     var fuzzCommand []string
@@ -103,7 +55,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
     // Should seed be passed in as a file or raw
     if n.raw {
         seed = string(t.Seed)
-    } else {
+    } else if !n.stdin {
         f, err := os.CreateTemp("", "hopper.*.in")
         defer os.Remove(f.Name())
         if err != nil {
@@ -117,6 +69,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
         }
         seed = f.Name()
     }
+    // Stdin or file
     if n.stdin {
         fuzzCommand = strings.Split(n.args, " ")
     } else {
@@ -160,39 +113,34 @@ func (n *HopperNode) fuzz(t c.FTask) {
     )
     //Crash Detected
     if err != nil {
-        update.Crash = parseAsan(errOut.String())
+        update.Crash = ParseAsan(errOut.String())
         n.crashN++
     }
-    cov_cmd := exec.Command(SANCOV,
-        "--symbolize",
-        sancov_file,
-        n.target,
-    )
     //Generate Coverage data
-    cov_s, ok := n.getCov(cov_cmd, sancov_file)
+    cov_s, ok := GetCoverage(sancov_file)
     update.Ok = ok
-    go func(update c.UpdateFTask, errOut bytes.Buffer, N int){
+    go func(update c.UpdateFTask, errOut bytes.Buffer, N uint64){
         if update.Ok {
-            update.CovEdges = len(cov_s)
-            update.CovHash = c.Hash([]byte(strings.Join(cov_s, "-")))
+            update.CovEdges = uint64(len(cov_s))
+            update.CovHash = c.BloomHash([]byte(strings.Join(cov_s, "-")))
         }
         log := n.updateFTask(update)
         if log {
-            go n.persistCrash(t.Seed, errOut, n.crashN)
+            PersistCrash(t.Seed, errOut, n.crashN, n.outDir)
         }
     }(update, errOut, n.crashN)
 }
 
-func Node(id int, target string, args string, raw bool, env string, stdin bool, master string) {
+func Node(id uint64, target string, args string, raw bool, env string, stdin bool, master string) {
     out_dir := os.Getenv("HOPPER_OUT")
-    var loc string
+    var location string
     if out_dir != "" {
-        loc = path.Join(out_dir, fmt.Sprintf("Node%d", id))
+        location = path.Join(out_dir, fmt.Sprintf("Node%d", id))
     } else {
-        loc = fmt.Sprintf("Node%d", id)
+        location = fmt.Sprintf("Node%d", id)
     }
     n := HopperNode{
-        loc:     loc,
+        outDir:  location,
         id:      id,
         target:  target,
         args:    args,
@@ -217,7 +165,7 @@ func Node(id int, target string, args string, raw bool, env string, stdin bool, 
     n.conn = c
     defer n.conn.Close()
     // Create node out dir
-    if err := os.MkdirAll(n.loc, 0750); err != nil && !os.IsExist(err) {
+    if err := os.MkdirAll(n.outDir, 0750); err != nil && !os.IsExist(err) {
         log.Fatal(err)
     }
     //Infinite loop, request Task -> do Task
@@ -225,6 +173,7 @@ func Node(id int, target string, args string, raw bool, env string, stdin bool, 
     for {
         ftask, ok := n.getFTask()
         if !ok || ftask.Die {
+            log.Printf("Killing Node")
             return
         }
         n.fuzz(ftask)
@@ -233,7 +182,7 @@ func Node(id int, target string, args string, raw bool, env string, stdin bool, 
 
 func main() {
     // HOPPER_OUT="."
-    id      := flag.Int("I", 0, "Node ID, usually just a unique int")
+    id      := flag.Uint64("I", 0, "Node ID, usually just a unique int")
     target  := flag.String("T", "", "instrumented target binary")
     args    := flag.String("args", "", "args to use against target, ex: --depth=1 @@")
     raw     := flag.Bool("raw", false, "should input be fed as pure string (default: input as a file arg)")
@@ -274,4 +223,3 @@ func (n *HopperNode) call(rpcname string, args interface{}, reply interface{}) b
 
     return true           
 }
-    

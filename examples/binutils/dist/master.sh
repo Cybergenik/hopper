@@ -14,4 +14,4 @@ screen -S master -dm docker run -it --rm \
     --volume $LOCAL_OUT:$HOPPER_OUT \
     --publish 6969:6969 \
     hopper-readelf:latest \
-    bash -c "cd hopper; go build .; ./hopper -I ./examples/binutils/readelf/in -H=5"
+    bash -c "cd hopper; go build .; ./hopper -I ./examples/binutils/readelf/in -H=20"
