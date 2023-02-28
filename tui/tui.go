@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	h "github.com/Cybergenik/hopper/master"
@@ -100,31 +99,31 @@ func (m Model) View() string {
         `,
 		labelstyle.Width(70).Render(HOPPER),
 		datastyle.Width(60).Render(hline),
-		datastyle.Width(30).Render("Master running on port: "+strconv.Itoa(m.stats.Port)),
+		datastyle.Width(30).Render(fmt.Sprintf("Master running on port: %d", m.stats.Port)),
 		// Fields
 		labelstyle.Width(6).Render("Havoc:"),
 		labelstyle.Width(15).Render("Its/s:"),
 		labelstyle.Width(6).Render("Edges:"),
 		// Data
-		datastyle.Width(6).Render(strconv.Itoa(m.stats.Havoc)),
-		datastyle.Width(15).Render(strconv.Itoa(m.stats.Its-m.oldStats.Its)+"/s"),
-		datastyle.Width(6).Render(strconv.Itoa(m.stats.MaxSeed.CovEdges)),
+		datastyle.Width(6).Render(fmt.Sprintf("%d", m.stats.Havoc)),
+		datastyle.Width(15).Render(fmt.Sprintf("%d/s", m.stats.Its-m.oldStats.Its)),
+		datastyle.Width(6).Render(fmt.Sprintf("%d", m.stats.MaxCov)),
 		// Fields
 		labelstyle.Width(6).Render("Seeds:"),
 		labelstyle.Width(15).Render("Crashes:"),
 		labelstyle.Width(15).Render("Fuzz Instances:"),
 		// Data
-		datastyle.Width(6).Render(strconv.Itoa(m.stats.SeedsN)),
-		datastyle.Width(15).Render(strconv.Itoa(m.stats.CrashN)),
-		datastyle.Width(15).Render(strconv.Itoa(m.stats.Its)),
+		datastyle.Width(6).Render(fmt.Sprintf("%d", m.stats.SeedsN)),
+		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.CrashN)),
+		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.Its)),
 		// Fields
 		labelstyle.Width(6).Render("Nodes:"),
 		labelstyle.Width(15).Render("Unique Crashes:"),
 		labelstyle.Width(13).Render("Unique Paths:"),
 		// Data
-		datastyle.Width(6).Render(strconv.Itoa(m.stats.Nodes)),
-		datastyle.Width(15).Render(strconv.Itoa(m.stats.UniqueCrashes)),
-		datastyle.Width(13).Render(strconv.Itoa(m.stats.UniquePaths)),
+		datastyle.Width(6).Render(fmt.Sprintf("%d", m.stats.Nodes)),
+		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.UniqueCrashes)),
+		datastyle.Width(13).Render(fmt.Sprintf("%d", m.stats.UniquePaths)),
 		// Quit
 		substyle.Width(30).Render("Press Space to Generate Report"),
 		substyle.Width(30).Render("Press Esc or Ctrl+C to quit"),

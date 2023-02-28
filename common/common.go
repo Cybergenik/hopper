@@ -5,35 +5,48 @@ import (
     "encoding/binary"
 )
 
-type HashID uint64
+type FTaskID uint64
 
-func Hash(b []byte) HashID {
+type BFHash [4]uint64
+
+func Hash(b []byte) FTaskID {
     sum := md5.Sum(b)
-    return HashID(binary.BigEndian.Uint64([]byte(sum[:])))
+    return FTaskID(binary.BigEndian.Uint64([]byte(sum[:])))
 }
 
-type Seed struct {
-    NodeId      int
+// baseHashes returns the four hash values of data that are used to create k
+// hashes
+func BloomHash(data []byte) BFHash {
+	var d Digest128 // murmur hashing
+	hash1, hash2, hash3, hash4 := d.Sum256(data)
+	return [4]uint64{
+		hash1, hash2, hash3, hash4,
+	}
+}
+
+type SeedInfo struct {
+    NodeId      uint64
+    Id          FTaskID
     Bytes       []byte
-    CovHash     HashID
-    CovEdges    int
+    CovHash     BFHash
+    CovEdges    uint64
     Crash       bool
 }
 
 type Stats struct {
-    Its           int
+    Its           uint64
     Port          int
-    Havoc         int
-    CrashN        int
-    SeedsN        int
-    MaxSeed       Seed
+    Havoc         uint64
+    CrashN        uint64
+    SeedsN        uint64
+    MaxCov        uint64
     UniqueCrashes int
-    UniquePaths   int
+    UniquePaths   uint64
     Nodes         int
 }
 
 type FTask struct {
-    Id       HashID
+    Id       FTaskID
     Seed     []byte
     Die      bool
 }
@@ -42,20 +55,15 @@ type FTaskArgs struct {
 
 }
 
-type Coverage struct {
-    NodeId   int
-    Type     string
-}
-
 type UpdateReply struct {
     Log      bool
 }
 
 type UpdateFTask struct {
-    NodeId   int
+    NodeId   uint64
     Ok       bool
-    Id       HashID
-    CovHash  HashID
-    CovEdges int
+    Id       FTaskID
+    CovHash  BFHash
+    CovEdges uint64
     Crash    string
 }

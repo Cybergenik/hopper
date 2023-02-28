@@ -26,7 +26,7 @@ func main_(){
         os.Exit(1)
     }
     N := flag.Int("N", 1, "Number of mutations to produce")
-    H := flag.Int("H", 1, "Level of Havoc, number of individual mutation steps per mutation")
+    H := flag.Uint64("H", 1, "Level of Havoc, number of individual mutation steps per mutation")
     flag.Parse()
 
     bytes, err := os.ReadFile(flag.Arg(0))
@@ -39,13 +39,13 @@ func main_(){
     }
 }
 
-func Mutator(b []byte, havoc int) []byte {
+func Mutator(b []byte, havoc uint64) []byte {
     rand.Seed(time.Now().UnixNano())
     if len(b) == 0 {
         panic("Tried to mutate 0 bytes")
     }
     bytes := append([]byte{}, b...)
-    for i:=0; i<havoc;{
+    for i:=uint64(0); i<havoc;{
         switch rand.Intn(N){
         case MUT:
             i := rand.Intn(len(bytes))

@@ -10,7 +10,7 @@ import (
 type PQItem struct {
     Seed     []byte
     Energy   float64
-    Id       c.HashID
+    Id       c.FTaskID
 	priority float64
 	index    int
 }

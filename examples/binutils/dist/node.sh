@@ -3,7 +3,7 @@
 ## Spawn Nodes
 export HOPPER_OUT="/hopper_out"
 LOCAL_OUT="/proj/hopper-tests-PG0/readelf-dat"
-MASTER_IP="amd171.utah.cloudlab.us"
+MASTER_IP="node0"
 PORT="6969"
 
 for ((i=$1;i<=$2;i++))

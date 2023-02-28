@@ -4,8 +4,8 @@
 #
 
 # clang-15
-CC="clang"
-CXX="clang++"
+CC="clang-15"
+CXX="clang++-15"
 
 # Symbols, ASAN, Edge Coverage
 CFLAGS=" -g -O0
