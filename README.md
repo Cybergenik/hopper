@@ -78,7 +78,7 @@ with a known vulnerability you can do the following:
 2. Build Image: `docker build -t hopper-node .`
 3. Run Master: `./examples/parse/docker/run_master_docker.sh` 
 4. Run Nodes: `./examples/parse/docker/run_node_docker.sh 1 10` (I'd recommend no more
-   than 1.5x # of logical cores on your machine, any more nodes on one system
+   than 1x # of logical cores on your machine, any more nodes on one system
    and they just get throttled and competing for CPU time)
 5. Look at the nice TUI :>
 
