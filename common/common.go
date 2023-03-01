@@ -65,5 +65,6 @@ type UpdateFTask struct {
     Id       FTaskID
     CovHash  BFHash
     CovEdges uint64
-    Crash    string
+    Crash    bool
+    CrashMsg string
 }

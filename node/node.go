@@ -113,22 +113,23 @@ func (n *HopperNode) fuzz(t c.FTask) {
     )
     //Crash Detected
     if err != nil {
-        update.Crash = ParseAsan(errOut.String())
+        update.CrashMsg = ParseAsan(errOut.String())
+        update.Crash = true
         n.crashN++
     }
     //Generate Coverage data
     cov_s, ok := GetCoverage(sancov_file)
     update.Ok = ok
-    go func(update c.UpdateFTask, errOut bytes.Buffer, N uint64){
+    go func(N uint64){
         if update.Ok {
             update.CovEdges = uint64(len(cov_s))
             update.CovHash = c.BloomHash([]byte(strings.Join(cov_s, "-")))
         }
         log := n.updateFTask(update)
         if log {
-            PersistCrash(t.Seed, errOut, n.crashN, n.outDir)
+            PersistCrash(t.Seed, errOut, N, n.outDir)
         }
-    }(update, errOut, n.crashN)
+    }(n.crashN)
 }
 
 func Node(id uint64, target string, args string, raw bool, env string, stdin bool, master string) {

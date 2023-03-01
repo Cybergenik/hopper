@@ -157,28 +157,31 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
         delete(h.seeds, update.Id)
         return nil
     }
+    // Track Crashes
+    if (update.Crash) {
+        h.crashN++
+    }
     // Dedup based on similar Coverage hash
     if !h.coverageBF.ContainsHash(update.CovHash){
         h.coverageBF.AddHash(update.CovHash)
         // Found Unique crash, tell node to Log
-        if (update.Crash != "") {
+        if (update.Crash) {
             reply.Log = true
-            h.crashes[update.Crash] = append(h.crashes[update.Crash], update.NodeId)
+            h.crashes[update.CrashMsg] = append(h.crashes[update.CrashMsg], update.NodeId)
         }
     }
+    // Energy Mutations
     s := c.SeedInfo{
         NodeId:   update.NodeId,
         Id:       update.Id,
         CovHash:  update.CovHash,
         CovEdges: update.CovEdges,
         Bytes:    h.seeds[update.Id],
-        Crash:    update.Crash != "",
+        Crash:    update.Crash,
     }
     go h.energyMutate(s, h.maxCov)
 
-    if (update.Crash != "") {
-        h.crashN++
-    }
+    // Update Max Edge coverage post mutation
     if update.CovEdges > h.maxCov{
         h.maxCov = s.CovEdges
     }
@@ -191,7 +194,7 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
 func (h *Hopper) mutGenerator() {
     for !h.killed() {
         availableCap := cap(h.qChan) - len(h.qChan)
-        if h.pq.Len() > 0 && availableCap >= int(cap(h.qChan)/2) {
+        if h.pq.Len() > 0 && availableCap >= (cap(h.qChan)/2) {
             //Baseline .01% of available queue capacity
             baseline := float64(availableCap) * .01
             
@@ -205,6 +208,8 @@ func (h *Hopper) mutGenerator() {
                     ok = h.addSeed(h.mutf(energyItem.Seed, h.havoc))
                 }
             }
+            // Avoid mem leak
+            energyItem = nil
         }
     }
 }
@@ -264,14 +269,14 @@ func InitHopper(havocN uint64, port int, mutf func([]byte, uint64) []byte, corpu
         mutf:       mutf,
         pq:         &PriorityQueue{},
         seeds:      make(map[c.FTaskID][]byte),
-        seedBF:     NewWithEstimates(100_000_000, .001),
-        coverageBF: NewWithEstimates(100_000_000, .001),
+        seedBF:     NewWithEstimates(10_000_000, .001),
+        coverageBF: NewWithEstimates(10_000_000, .001),
         crashes:    make(map[string][]uint64),
         maxCov:     0,
         port:       port,
         nodes:      make(map[uint64]bool),
         //TODO: consider using circular buffer: container/ring
-        qChan:      make(chan c.FTaskID, 10000),
+        qChan:      make(chan c.FTaskID, 10_000),
         dead:       0,
         its:        0,
         crashN:     0,
