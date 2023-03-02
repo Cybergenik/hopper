@@ -23,28 +23,32 @@ distributed environments, it's not meant to replace AFL++ in most cases.
 - [LLVM](https://clang.llvm.org/) toolchain, specifically
   [clang](https://clang.llvm.org/get_started.html) with it's built-in
   [ASAN](https://clang.llvm.org/docs/AddressSanitizer.html)
-- [clang-tools](https://clang.llvm.org/docs/ClangTools.html), specifically the
+- [clang-tools](https://clang.llvm.org/docs/ClangTools.html),
   [SanitizerCoverage](https://clang.llvm.org/docs/SanitizerCoverage.html)
   sancov utility.
 
 #### Instrumentation:
 
-- The [compile](test/compile) script adds all the flags required to compiler
+- The [compile](test/compile) script adds all the flags required to compile
   the target program with clang++.
 
 Ex:
 > `./compile target.c`
 
 #### Env:
-- `HOPPER_OUT`: path to where to save output seeds in the case of the Node or
-  the hopper report in the case of the Master. (defaults to `.`)
+- `HOPPER_OUT`: Where to save Hopper output; sanitizer reports, crash inputs and
+  hopper reports, defaults to `.`
+- `HOPPER_LOG`: Enable Logging on Master, defaults to `HOPPER_LOG=0` _Master
+  only_
+- `HOPPER_LOG_INTERVAL`: Logging interval in minutes, defaults to 
+  `HOPPER_LOG_INTERVAL=30` (ignored if `HOPPER_LOG` is not set) _Master only_
 
 #### Master:
 
 - <kbd>-I</kbd>: Path to input corpus, directory containing files each being a
   seed
 - <kbd>-H</kbd>: Havoc level to use in mutator, defaults to `1` (recommended:
-  1-10, for builtin mutator)
+  increase havoc for larger seeds)
 - <kbd>-P</kbd>: Port to host Master on, defaults to `6969`
 
 Ex:

@@ -8,6 +8,8 @@ import (
     "path"
     "math"
     "sync"
+    "time"
+    "strconv"
     "net/rpc"
     "net/http"
 	"container/heap"
@@ -75,7 +77,7 @@ Nodes:          %v
 `
 )
 
-func (h *Hopper) Report() {
+func (h *Hopper) Report(logSuffix string) {
     h.mu.Lock()
     crashes := "Crashes:\n"
     for cType, nodes := range h.crashes{
@@ -97,12 +99,12 @@ func (h *Hopper) Report() {
         len(h.nodes),
         crashes,
     )
-    out_dir := os.Getenv("HOPPER_OUT")
+    out_dir, ok := os.LookupEnv("HOPPER_OUT")
     var out string
-    if out_dir != "" {
-        out = path.Join(out_dir, "hopper.report")
+    if ok {
+        out = path.Join(out_dir, "hopper.report."+logSuffix)
     } else {
-        out = "hopper.report"
+        out = "hopper.report."+logSuffix
     }
     os.WriteFile(out, []byte(report), 0666)
     h.mu.Unlock()
@@ -263,6 +265,24 @@ func (h *Hopper) rpcServer(){
     go http.Serve(l, nil)                         
 }
 
+func (h *Hopper) logger() {
+    logInt, ok := os.LookupEnv("HOPPER_LOG_INTERVAL")
+    interval := 30
+    if ok {
+        err := error(nil)
+        interval, err = strconv.Atoi(logInt)
+        if err != nil {
+            log.Fatalf("Invalid HOPPER_LOG_INTERVAL: %v", interval)
+        }
+    }
+    n := 0
+    for !h.killed() {
+        time.Sleep(time.Minute*time.Duration(interval))
+        h.Report(fmt.Sprintf("%d",n))
+        n++
+    }
+}
+
 func InitHopper(havocN uint64, port int, mutf func([]byte, uint64) []byte, corpus [][]byte) *Hopper{
     h := Hopper{
         havoc:      havocN,
@@ -283,13 +303,22 @@ func InitHopper(havocN uint64, port int, mutf func([]byte, uint64) []byte, corpu
         seedsN:     0,
     }
 
+    // Add initial Corpus
     for _, seed := range corpus {
         h.addSeed(seed)
     }
     
+    // Init PQ of energy mutation seeds
     heap.Init(h.pq)
+
     // Spawn Energy Mutation Generator
     go h.mutGenerator()
+
+    // Logger
+    _, ok := os.LookupEnv("HOPPER_LOG")
+    if ok {
+        go h.logger()
+    }
 
     // Spawn RPC server
     h.rpcServer()

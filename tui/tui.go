@@ -67,7 +67,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.master.Kill()
 			return m, tea.Quit
 		case tea.KeySpace:
-			m.master.Report()
+			m.master.Report("Space")
 			return m, nil
 		}
 	case TickMsg:
