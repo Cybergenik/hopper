@@ -27,6 +27,6 @@ sudo docker build -t hopper-node .
 cd examples/binutils/
 sudo docker build -t hopper-readelf .
 cd ~
-cp ~/hopper/examples/binutils/dist/master.sh .
-cp ~/hopper/examples/binutils/dist/node.sh .
+cp ~/hopper/examples/binutils/dist/readelf/master.sh .
+cp ~/hopper/examples/binutils/dist/readelf/node.sh .
 rm -rf hopper
