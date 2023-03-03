@@ -1,10 +1,11 @@
 package main
 
 import (
-    "flag"
+    "os"
     "fmt"
     "log"
-    "os"
+    "time"
+    "flag"
     "plugin"
 
     m "github.com/Cybergenik/hopper/master"
@@ -43,10 +44,11 @@ func readCorpus(path string) [][]byte {
 }
 
 func main() {
-    help := flag.Bool("help", false, "help menu")
+    help  := flag.Bool("help", false, "help menu")
     input := flag.String("I", "", "path to input corpus, directory containing files each being a seed")
     havoc := flag.Uint64("H", 1, "Havoc level to use in mutator, defaults to 1")
-    port := flag.Int("P", 6969, "Port to use, defaults to :6969")
+    port  := flag.Int("P", 6969, "Port to use, defaults to :6969")
+    noTui   := flag.Bool("--no-tui", false, "Don't Generate TUI")
     //TODO: impl thread mode, shouldn't be too hard
     //thread_mode := flag.Bool("T", false, "Port to use, defaults to :6969")
     flag.Parse()
@@ -63,6 +65,15 @@ func main() {
     }
     //Parse corpus seeds
     corpus := readCorpus(*input)
+
+    if *noTui{
+        h := m.InitHopper(*havoc, *port, m.Mutator, corpus)
+        for {
+            s := h.Stats()
+            fmt.Printf("Its: %d/s", s.Its)
+            time.Sleep(10 * time.Second)
+        }
+    }
     //Init TUI loop
     initTUI(m.InitHopper(*havoc, *port, m.Mutator, corpus))
 }

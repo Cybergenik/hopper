@@ -9,6 +9,7 @@ import (
     "math"
     "sync"
     "time"
+    "bytes"
     "strconv"
     "net/rpc"
     "net/http"
@@ -77,7 +78,7 @@ Nodes:          %v
 `
 )
 
-func (h *Hopper) Report(logSuffix string) {
+func (h *Hopper) Report(out bytes.Buffer) {
     h.mu.Lock()
     crashes := "Crashes:\n"
     for cType, nodes := range h.crashes{
@@ -99,14 +100,7 @@ func (h *Hopper) Report(logSuffix string) {
         len(h.nodes),
         crashes,
     )
-    out_dir, ok := os.LookupEnv("HOPPER_OUT")
-    var out string
-    if ok {
-        out = path.Join(out_dir, "hopper.report."+logSuffix)
-    } else {
-        out = "hopper.report."+logSuffix
-    }
-    os.WriteFile(out, []byte(report), 0666)
+    out.Write([]byte(report))
     h.mu.Unlock()
 }
 
@@ -278,7 +272,16 @@ func (h *Hopper) logger() {
     n := 0
     for !h.killed() {
         time.Sleep(time.Minute*time.Duration(interval))
-        h.Report(fmt.Sprintf("%d",n))
+        out_dir, ok := os.LookupEnv("HOPPER_OUT")
+        var out string
+        if ok {
+            out = path.Join(out_dir, fmt.Sprintf("hopper.report.%d", n))
+        } else {
+            out = fmt.Sprintf("hopper.report.%d", n)
+        }
+        var report bytes.Buffer
+        h.Report(report)
+        os.WriteFile(out, report.Bytes(), 0666)
         n++
     }
 }

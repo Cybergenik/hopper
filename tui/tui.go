@@ -1,8 +1,11 @@
 package tui
 
 import (
+    "os"
 	"fmt"
 	"time"
+    "path"
+    "bytes"
 
 	h "github.com/Cybergenik/hopper/master"
 	c "github.com/Cybergenik/hopper/common"
@@ -67,7 +70,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.master.Kill()
 			return m, tea.Quit
 		case tea.KeySpace:
-			m.master.Report("Space")
+            out_dir, ok := os.LookupEnv("HOPPER_OUT")
+            var out string
+            if ok {
+                out = path.Join(out_dir, "hopper.report.Space")
+            } else {
+                out = "hopper.report.Space"
+            }
+            var report bytes.Buffer
+			m.master.Report(report)
+            os.WriteFile(out, report.Bytes(), 0666)
 			return m, nil
 		}
 	case TickMsg:
