@@ -13,9 +13,9 @@ import (
     tea "github.com/charmbracelet/bubbletea"
 )
 
-// TODO: change this, it's trash...
+// TODO: Update Help
 func printHelp() {
-    fmt.Printf("Hopper Master: go run master.go -I input/ -H=2 -P=6969 -M mut.so\n")
+    fmt.Printf("Hopper Master: go run master.go -I input/ -H=2 -P=6969\n")
 }
 
 func initTUI(master *m.Hopper) {
@@ -48,7 +48,7 @@ func main() {
     input := flag.String("I", "", "path to input corpus, directory containing files each being a seed")
     havoc := flag.Uint64("H", 1, "Havoc level to use in mutator, defaults to 1")
     port  := flag.Int("P", 6969, "Port to use, defaults to :6969")
-    noTui   := flag.Bool("--no-tui", false, "Don't Generate TUI")
+    noTui   := flag.Bool("no-tui", false, "Don't Generate TUI")
     //TODO: impl thread mode, shouldn't be too hard
     //thread_mode := flag.Bool("T", false, "Port to use, defaults to :6969")
     flag.Parse()
@@ -70,7 +70,7 @@ func main() {
         h := m.InitHopper(*havoc, *port, m.Mutator, corpus)
         for {
             s := h.Stats()
-            fmt.Printf("Its: %d/s", s.Its)
+            fmt.Printf("Its: %d, QCap: %d%% \n", s.Its, int(s.Its/s.SeedsN * 100))
             time.Sleep(10 * time.Second)
         }
     }
@@ -78,7 +78,7 @@ func main() {
     initTUI(m.InitHopper(*havoc, *port, m.Mutator, corpus))
 }
 
-func loadMutEngine(filename string) func([]byte, int) []byte {
+func loadMutEngine(filename string) func([]byte, uint64) []byte {
     p, err := plugin.Open(filename)
     if err != nil {
         log.Fatalf("cannot load plugin %v", filename)
@@ -89,5 +89,5 @@ func loadMutEngine(filename string) func([]byte, int) []byte {
         log.Fatalf("cannot find Mutator in %v", filename)
     }
 
-    return xmutf.(func([]byte, int) []byte)
+    return xmutf.(func([]byte, uint64) []byte)
 }

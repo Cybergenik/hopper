@@ -1,22 +1,25 @@
 package master
 
 import (
-    "os"
-    "fmt"
-    "log"
-    "net"
-    "path"
-    "math"
-    "sync"
-    "time"
-    "bytes"
-    "strconv"
-    "net/rpc"
-    "net/http"
+	"bytes"
 	"container/heap"
-    "sync/atomic"
+	"fmt"
+	"log"
+	"math"
+	"net"
+	"net/http"
+	"net/rpc"
+	"os"
+	"path"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"time"
 
-    c "github.com/Cybergenik/hopper/common"
+	c "github.com/Cybergenik/hopper/common"
+
+	//Profiling
+	//_ "net/http/pprof"
 )
 
 
@@ -292,8 +295,8 @@ func InitHopper(havocN uint64, port int, mutf func([]byte, uint64) []byte, corpu
         mutf:       mutf,
         pq:         &PriorityQueue{},
         seeds:      make(map[c.FTaskID][]byte),
-        seedBF:     NewWithEstimates(10_000_000, .01),
-        coverageBF: NewWithEstimates(10_000_000, .01),
+        seedBF:     NewWithEstimates(10_000_000, .001),
+        coverageBF: NewWithEstimates(10_000_000, .001),
         crashes:    make(map[string][]uint64),
         maxCov:     0,
         port:       port,
@@ -325,6 +328,11 @@ func InitHopper(havocN uint64, port int, mutf func([]byte, uint64) []byte, corpu
 
     // Spawn RPC server
     h.rpcServer()
+
+    //Profiler
+    //go func() {
+    //    log.Println(http.ListenAndServe("localhost:6060", nil))
+    //}()
 
     return &h
 }

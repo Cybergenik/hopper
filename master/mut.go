@@ -60,7 +60,7 @@ func Mutator(b []byte, havoc uint64) []byte {
             i := rand.Intn(len(bytes))
             bytes = append(bytes[:i], bytes[i+1:]...)
         case ADD:
-            // Cap adding bytes if seed is over 1MB
+            // Capacity: Not adding bytes if seed is over 1MB
             if len(bytes) >= 1000000 {
                 continue
             }
