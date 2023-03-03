@@ -19,7 +19,7 @@ yes | sudo docker image prune
 yes | sudo docker container prune
 
 # Clone and build Hopper
-git clone https://github.com/Cybergenik/hopper.git
+git clone --branch stress_tests --single-branch https://github.com/Cybergenik/hopper.git
 cd hopper/
 sudo docker build -t hopper-node .
 cd examples/binutils/
