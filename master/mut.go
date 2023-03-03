@@ -44,7 +44,8 @@ func Mutator(b []byte, havoc uint64) []byte {
     if len(b) == 0 {
         panic("Tried to mutate 0 bytes")
     }
-    bytes := append([]byte{}, b...)
+    bytes := make([]byte, len(b))
+    copy(bytes, b)
     for i:=uint64(0); i<havoc;{
         switch rand.Intn(N){
         case MUT:
