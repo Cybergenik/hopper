@@ -19,11 +19,14 @@ yes | sudo docker image prune
 yes | sudo docker container prune
 
 # Clone and build Hopper
-git clone https://github.com/Cybergenik/hopper.git
+git clone --branch stress_tests --single-branch https://github.com/Cybergenik/hopper.git
 cd hopper/
+git checkout stress_tests
+
 sudo docker build -t hopper-node .
 cd examples/binutils/
 sudo docker build -t hopper-readelf .
 cd ~
-cp ~/hopper/examples/binutils/dist/master.sh .
-cp ~/hopper/examples/binutils/dist/node.sh .
+cp ~/hopper/examples/binutils/readelf/master_docker.sh .
+cp ~/hopper/examples/binutils/readelf/node_docker.sh .
+rm -rf hopper

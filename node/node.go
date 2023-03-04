@@ -113,9 +113,11 @@ func (n *HopperNode) fuzz(t c.FTask) {
     )
     //Crash Detected
     if err != nil {
-        update.CrashMsg = ParseAsan(errOut.String())
-        update.Crash = true
-        n.crashN++
+        if report := ParseAsan(errOut.String()); report != ""{
+            update.CrashMsg = report
+            update.Crash = true
+            n.crashN++
+        }
     }
     //Generate Coverage data
     cov_s, ok := GetCoverage(sancov_file)
@@ -123,7 +125,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
     go func(N uint64){
         if update.Ok {
             update.CovEdges = uint64(len(cov_s))
-            update.CovHash = c.BloomHash([]byte(strings.Join(cov_s, "-")))
+            update.CovHash = c.BloomHash([]byte(strings.Join(cov_s, "")))
         }
         log := n.updateFTask(update)
         if log {

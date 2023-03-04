@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Logger:
-export HOPPER_LOG=1
-export HOPPER_LOG_INTERVAL=1
+#export HOPPER_LOG=1
+#export HOPPER_LOG_INTERVAL=1
 
-# sudo docker build -t hopper-node .
+# docker build -t hopper-node .
 ## Create Hopper subnet
 docker network create hopper-subnet &> /dev/null
 export HOPPER_OUT="/hopper_out"
