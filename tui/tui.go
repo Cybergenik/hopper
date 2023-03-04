@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
     "path"
-    "bytes"
 
 	h "github.com/Cybergenik/hopper/master"
 	c "github.com/Cybergenik/hopper/common"
@@ -77,9 +76,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
             } else {
                 out = "hopper.report.Space"
             }
-            var report bytes.Buffer
-			m.master.Report(report)
-            os.WriteFile(out, report.Bytes(), 0666)
+            os.WriteFile(out, []byte(m.master.Report()), 0666)
 			return m, nil
 		}
 	case TickMsg:

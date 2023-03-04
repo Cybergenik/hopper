@@ -6,6 +6,8 @@ import (
     c "github.com/Cybergenik/hopper/common"
 )
 
+const MAX = 5000
+
 // An Item is something we manage in a priority queue.
 type PQItem struct {
     Seed     []byte
@@ -28,11 +30,31 @@ func (pq PriorityQueue) Swap(i, j int) {
 	pq[j].index = j
 }
 
+// Changed to keep a fixed size PQ
 func (pq *PriorityQueue) Push(x any) {
 	n := len(*pq)
-	item := x.(*PQItem)
-	item.index = n
-	*pq = append(*pq, item)
+    item := x.(*PQItem)
+    if n >= MAX {
+        smallestIndex := 0
+        smallest := 10.0
+        for _, item := range *pq {
+            if item.priority < smallest {
+                smallest = item.priority
+                smallestIndex = item.index
+            }
+        }
+        if item.priority > smallest {
+            sItem := (*pq)[smallestIndex]
+            sItem.priority = item.priority
+            sItem.Energy = item.Energy
+            sItem.Seed = item.Seed
+            (*pq)[smallestIndex] = sItem
+            heap.Fix(pq, smallestIndex)
+        }
+    } else {
+        item.index = n
+        *pq = append(*pq, item)
+    }
 }
 
 func (pq *PriorityQueue) Pop() any {

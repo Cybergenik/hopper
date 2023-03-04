@@ -8,5 +8,5 @@ mkdir hopper_out
 export HOPPER_OUT=$(pwd)"/hopper_out"
 ## Spawn Master
 go build .;
-./hopper -I ./examples/binutils/readelf/in -H=20 --no-tui
+./hopper -I ./examples/binutils/readelf/in -H=20 #--no-tui
 

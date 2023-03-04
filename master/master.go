@@ -1,8 +1,6 @@
 package master
 
 import (
-	"bytes"
-	"container/heap"
 	"fmt"
 	"log"
 	"math"
@@ -10,11 +8,12 @@ import (
 	"net/http"
 	"net/rpc"
 	"os"
+	"time"
 	"path"
 	"strconv"
 	"sync"
 	"sync/atomic"
-	"time"
+	"container/heap"
 
 	c "github.com/Cybergenik/hopper/common"
 
@@ -81,8 +80,9 @@ Nodes:          %v
 `
 )
 
-func (h *Hopper) Report(out bytes.Buffer) {
+func (h *Hopper) Report() string {
     h.mu.Lock()
+    defer h.mu.Unlock()
     crashes := "Crashes:\n"
     for cType, nodes := range h.crashes{
         crashes += cType + ": "
@@ -91,7 +91,7 @@ func (h *Hopper) Report(out bytes.Buffer) {
         }
         crashes += "\n"
     }
-    report := fmt.Sprintf(
+    return fmt.Sprintf(
         EXP,
         h.havoc,
         h.seedsN,
@@ -103,8 +103,6 @@ func (h *Hopper) Report(out bytes.Buffer) {
         len(h.nodes),
         crashes,
     )
-    out.Write([]byte(report))
-    h.mu.Unlock()
 }
 
 func (h *Hopper) Kill() {
@@ -283,9 +281,8 @@ func (h *Hopper) logger() {
         } else {
             out = fmt.Sprintf("hopper.report.%d", n)
         }
-        var report bytes.Buffer
-        h.Report(report)
-        os.WriteFile(out, report.Bytes(), 0666)
+        
+        os.WriteFile(out, []byte(h.Report()), 0666)
         n++
     }
 }
