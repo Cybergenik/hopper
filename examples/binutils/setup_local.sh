@@ -12,7 +12,7 @@ sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.19.3.linux-amd64.ta
 export PATH=$PATH:/usr/local/go/bin
 
 # Clone and build Hopper
-git clone --branch stress_tests --single-branch https://github.com/Cybergenik/hopper.git
+git clone https://github.com/Cybergenik/hopper.git
 cd hopper/
 
 go build .
