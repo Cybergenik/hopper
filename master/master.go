@@ -160,7 +160,7 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
         h.crashN++
     }
     // Dedup based on similar Coverage hash
-    if !h.coverageBF.ContainsHash(update.CovHash) || len(h.pq) < 10 {
+    if !h.coverageBF.ContainsHash(update.CovHash) || h.pq.Len() < 500 {
         h.coverageBF.AddHash(update.CovHash)
         // Energy Mutations
         s := c.SeedInfo{
