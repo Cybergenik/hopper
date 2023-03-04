@@ -22,7 +22,7 @@ const (
  #+#    #+# #+#    #+# #+#        #+#        #+#        #+#    #+#     
 ###    ###  ########  ###        ###        ########## ###    ###      
 `
-	hline = `==================================================`
+	hline = `============================================================`
 )
 
 type TickMsg time.Time
@@ -90,49 +90,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) View() string {
 	body := fmt.Sprintf(
 		`
-            %s
-	%s
+%s
+    %s
 		    %s
     	
-    	      %s    %s    %s
-    	      %s    %s    %s
-    	
-    	      %s    %s    %s
-    	      %s    %s    %s
-    	
-    	      %s    %s    %s
-    	      %s    %s    %s
+        %s    %s    %s
+        %s    %s    %s
+                          
+        %s    %s    %s
+        %s    %s    %s
+                          
+        %s    %s    %s
+        %s    %s    %s
     
 		    %s
 		    %s
         `,
 		labelstyle.Width(70).Render(HOPPER),
-		datastyle.Width(60).Render(hline),
+		datastyle.Width(70).Render(hline),
 		datastyle.Width(30).Render(fmt.Sprintf("Master running on port: %d", m.stats.Port)),
 		// Fields
-		labelstyle.Width(6).Render("Havoc:"),
+		labelstyle.Width(15).Render("Havoc:"),
 		labelstyle.Width(15).Render("Its/s:"),
-		labelstyle.Width(6).Render("Edges:"),
+		labelstyle.Width(15).Render("Edges:"),
 		// Data
-		datastyle.Width(6).Render(fmt.Sprintf("%d", m.stats.Havoc)),
+		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.Havoc)),
 		datastyle.Width(15).Render(fmt.Sprintf("%d/s", m.stats.Its-m.oldStats.Its)),
-		datastyle.Width(6).Render(fmt.Sprintf("%d", m.stats.MaxCov)),
+		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.MaxCov)),
 		// Fields
-		labelstyle.Width(6).Render("Seeds:"),
+		labelstyle.Width(15).Render("Seeds:"),
 		labelstyle.Width(15).Render("Crashes:"),
 		labelstyle.Width(15).Render("Fuzz Instances:"),
 		// Data
-		datastyle.Width(6).Render(fmt.Sprintf("%d", m.stats.SeedsN)),
+		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.SeedsN)),
 		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.CrashN)),
 		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.Its)),
 		// Fields
-		labelstyle.Width(6).Render("Nodes:"),
+		labelstyle.Width(15).Render("Nodes:"),
 		labelstyle.Width(15).Render("Unique Crashes:"),
-		labelstyle.Width(13).Render("Unique Paths:"),
+		labelstyle.Width(15).Render("Unique Paths:"),
 		// Data
-		datastyle.Width(6).Render(fmt.Sprintf("%d", m.stats.Nodes)),
+		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.Nodes)),
 		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.UniqueCrashes)),
-		datastyle.Width(13).Render(fmt.Sprintf("%d", m.stats.UniquePaths)),
+		datastyle.Width(15).Render(fmt.Sprintf("%d", m.stats.UniquePaths)),
 		// Quit
 		substyle.Width(30).Render("Press Space to Generate Report"),
 		substyle.Width(30).Render("Press Esc or Ctrl+C to quit"),
