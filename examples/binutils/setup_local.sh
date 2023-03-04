@@ -29,6 +29,6 @@ cd ~
 cp hopper/hopper ./master
 cp hopper/node/node .
 cp -r hopper/examples/binutils/readelf/in .
-cp ~/hopper/examples/binutils/readelf/dist/master_local.sh .
-cp ~/hopper/examples/binutils/readelf/dist/node_local.sh .
+cp ~/hopper/examples/binutils/readelf/master.sh .
+cp ~/hopper/examples/binutils/readelf/node.sh .
 rm -rf hopper
