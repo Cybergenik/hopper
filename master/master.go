@@ -33,7 +33,7 @@ type Hopper struct {
     // Mutation function
     mutf        func ([]byte, uint64) []byte
     // PQ of seeds
-    pq          *PriorityQueue
+    pq          PriorityQueue
     // seed map, used as temporary rotating buffer while seeds are being fuzzed.
     // Seeds exist ephemerally
     seeds       map[c.FTaskID][]byte
@@ -114,6 +114,7 @@ func (h *Hopper) Kill() {
 func (h *Hopper) Stats() c.Stats{
     h.mu.Lock()
     defer h.mu.Unlock()
+    //fmt.Printf("FTask Q size: %v, Energy PQ size: %v ", len(h.seeds), h.pq.Len())
     return c.Stats{
         Its:           h.its,
         Port:          h.port,
@@ -161,28 +162,28 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
         h.crashN++
     }
     // Dedup based on similar Coverage hash
-    if !h.coverageBF.ContainsHash(update.CovHash){
+    if !h.coverageBF.ContainsHash(update.CovHash) || len(h.pq) < 10 {
         h.coverageBF.AddHash(update.CovHash)
+        // Energy Mutations
+        s := c.SeedInfo{
+            NodeId:   update.NodeId,
+            Id:       update.Id,
+            CovHash:  update.CovHash,
+            CovEdges: update.CovEdges,
+            Bytes:    h.seeds[update.Id],
+            Crash:    update.Crash,
+        }
+        go h.energyMutate(s, h.maxCov)
+
+        // Update Max Edge coverage post mutation
+        if update.CovEdges > h.maxCov{
+            h.maxCov = s.CovEdges
+        }
         // Found Unique crash, tell node to Log
         if (update.Crash) {
             reply.Log = true
             h.crashes[update.CrashMsg] = append(h.crashes[update.CrashMsg], update.NodeId)
         }
-    }
-    // Energy Mutations
-    s := c.SeedInfo{
-        NodeId:   update.NodeId,
-        Id:       update.Id,
-        CovHash:  update.CovHash,
-        CovEdges: update.CovEdges,
-        Bytes:    h.seeds[update.Id],
-        Crash:    update.Crash,
-    }
-    go h.energyMutate(s, h.maxCov)
-
-    // Update Max Edge coverage post mutation
-    if update.CovEdges > h.maxCov{
-        h.maxCov = s.CovEdges
     }
     //Free mutated seed
     h.seeds[update.Id] = nil
@@ -195,10 +196,10 @@ func (h *Hopper) mutGenerator() {
         availableCap := cap(h.qChan) - len(h.qChan)
         if h.pq.Len() > 0 && availableCap >= (cap(h.qChan)/2) {
             //Baseline .01% of available queue capacity
-            baseline := float64(availableCap) * .01
+            baseline := float64(availableCap) * .001
             
             h.pqMu.Lock()
-            energyItem := heap.Pop(h.pq).(*PQItem)
+            energyItem := heap.Pop(&h.pq).(*PQItem)
             h.pqMu.Unlock()
             mutN := int(math.Max(1, energyItem.Energy * baseline))
             //fmt.Printf("baseline: %.2f * energy: %.2f = %d", baseline, energyItem.Energy, mutN)
@@ -217,11 +218,11 @@ func (h *Hopper) energyMutate(seed c.SeedInfo, maxEdges uint64) {
     // Energy Range: (0, 1]
     energy := math.Min(1, float64(seed.CovEdges)/float64(maxEdges))
     if seed.Crash {
-        energy += 1
+        energy *= 2
     }
     h.pqMu.Lock()
     heap.Push(
-        h.pq,
+        &h.pq,
         &PQItem{
             Id:       seed.Id,
             Seed:     seed.Bytes,
@@ -293,7 +294,7 @@ func InitHopper(havocN uint64, port int, mutf func([]byte, uint64) []byte, corpu
     h := Hopper{
         havoc:      havocN,
         mutf:       mutf,
-        pq:         &PriorityQueue{},
+        pq:         make(PriorityQueue, 0),
         seeds:      make(map[c.FTaskID][]byte),
         seedBF:     NewWithEstimates(10_000_000, .001),
         coverageBF: NewWithEstimates(10_000_000, .001),
@@ -315,7 +316,7 @@ func InitHopper(havocN uint64, port int, mutf func([]byte, uint64) []byte, corpu
     }
     
     // Init PQ of energy mutation seeds
-    heap.Init(h.pq)
+    heap.Init(&h.pq)
 
     // Spawn Energy Mutation Generator
     go h.mutGenerator()

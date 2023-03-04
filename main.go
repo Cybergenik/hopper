@@ -70,7 +70,7 @@ func main() {
         h := m.InitHopper(*havoc, *port, m.Mutator, corpus)
         for {
             s := h.Stats()
-            fmt.Printf("Its: %d, QCap: %d%% \n", s.Its, int(s.Its/s.SeedsN * 100))
+            fmt.Printf("Its: %d\n", s.Its)
             time.Sleep(10 * time.Second)
         }
     }
