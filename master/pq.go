@@ -6,7 +6,7 @@ import (
     c "github.com/Cybergenik/hopper/common"
 )
 
-const MAX = 5000
+const MAX = 5_000
 
 // An Item is something we manage in a priority queue.
 type PQItem struct {
