@@ -10,6 +10,7 @@ import (
     "strings"
     "path/filepath"
     "net/rpc"
+	"sync/atomic"
     "bytes"
 
     c "github.com/Cybergenik/hopper/common"
@@ -25,6 +26,7 @@ type HopperNode struct {
     raw         bool
     master      string
     crashN      uint64
+    dead        int32
     conn        *rpc.Client
 }
 
@@ -46,6 +48,11 @@ func (n *HopperNode) updateFTask(ut c.UpdateFTask) bool {
         log.Println("Error Updating FTask!")
     }
     return reply.Log
+}
+
+func (n *HopperNode) killed() bool {
+    z := atomic.LoadInt32(&n.dead)
+    return z == 1
 }
 
 func (n *HopperNode) fuzz(t c.FTask) {
@@ -134,6 +141,17 @@ func (n *HopperNode) fuzz(t c.FTask) {
     }(n.crashN)
 }
 
+func (n *HopperNode) taskGenerator(taskQ chan c.FTask) {
+    for !n.killed() {
+        ftask, ok := n.getFTask()
+        if !ok || ftask.Die {
+            atomic.StoreInt32(&n.dead, 1)
+            return
+        }
+        taskQ<-ftask
+    }
+}
+
 func Node(id uint64, target string, args string, raw bool, env string, stdin bool, master string) {
     out_dir := os.Getenv("HOPPER_OUT")
     var location string
@@ -161,30 +179,31 @@ func Node(id uint64, target string, args string, raw bool, env string, stdin boo
     // Env vars
     n.env = append(n.env, "ASAN_OPTIONS=coverage=1")
     // Init TCP/IP connection to master
-    c, err := rpc.DialHTTP("tcp", n.master)
+    conn, err := rpc.DialHTTP("tcp", n.master)
     if err != nil {                 
         log.Fatal("dialing:", err)
     }
-    n.conn = c
+    n.conn = conn
     defer n.conn.Close()
     // Create node out dir
     if err := os.MkdirAll(n.outDir, 0750); err != nil && !os.IsExist(err) {
         log.Fatal(err)
     }
-    //Infinite loop, request Task -> do Task
+    //Double Thread Queue: request Task -> do Task
+    taskQ := make(chan c.FTask, 5)
+    go n.taskGenerator(taskQ)
+
     log.Printf("Started Node: %v\n", id)
-    for {
-        ftask, ok := n.getFTask()
-        if !ok || ftask.Die {
-            log.Printf("Killing Node")
-            return
+    for !n.killed() {
+        select {
+        case task := <-taskQ:
+            n.fuzz(task)
+        default:
         }
-        n.fuzz(ftask)
     }
 }
 
 func main() {
-    // HOPPER_OUT="."
     id      := flag.Uint64("I", 0, "Node ID, usually just a unique int")
     target  := flag.String("T", "", "instrumented target binary")
     args    := flag.String("args", "", "args to use against target, ex: --depth=1 @@")
