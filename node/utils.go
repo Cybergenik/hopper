@@ -28,14 +28,14 @@ func PersistCrash(seed []byte, asan bytes.Buffer, crashN uint64, outDir string) 
     out := path.Join(outDir, fmt.Sprintf("crash%d", crashN))
     //Write input
     input := bytes.NewBuffer(seed)
-    err := os.WriteFile(fmt.Sprintf("%s.in", out), input.Bytes(), 0660)
+    err := os.WriteFile(fmt.Sprintf("%s.in", out), input.Bytes(), 0444)
     if err != nil {
         log.Fatal(err)
     }
     //Write ASAN data
     report := bytes.NewBufferString("ASAN:\n\n")
     report.Write(asan.Bytes())
-    err = os.WriteFile(fmt.Sprintf("%s.report", out), report.Bytes(), 0660)
+    err = os.WriteFile(fmt.Sprintf("%s.report", out), report.Bytes(), 0444)
     if err != nil {
         log.Fatal(err)
     }
