@@ -11,6 +11,7 @@ CXX="clang++"
 CFLAGS=" -g -O0
          -fsanitize=address
          -fno-omit-frame-pointer
+         -fsanitize-address-use-after-scope
          -fsanitize-coverage=edge,trace-pc-guard
          -o target"
  
