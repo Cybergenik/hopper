@@ -18,4 +18,5 @@ do
             go build .;
             cd ..;
             ./node/node -I $i -T ./readelf_target -M $MASTER_IP -P $PORT --args '-a @@'" &> /dev/null &
+    sleep .2
 done

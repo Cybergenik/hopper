@@ -107,7 +107,6 @@ func (n *HopperNode) fuzz(t c.FTask) {
         log.Println(err)
         update.Ok = false
         go n.updateFTask(update)
-        cmd.Wait()
         return
     }
     if n.stdin {

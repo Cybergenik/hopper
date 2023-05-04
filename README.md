@@ -10,7 +10,7 @@ by <a href="https://github.com/AFLplusplus/AFLplusplus">AFL++</a>
 distributed environments, it's not meant to replace AFL++ in most cases.
 </h4>
 
-<img src="images/master.png" align="center" alt="Runemaster Icon"/><br>
+<img src="images/tui.png" align="center" alt="Runemaster Icon"/><br>
 
 *Hopper Master*
 
@@ -88,8 +88,45 @@ with a known vulnerability you can do the following:
 
 *You can also look at all the Hopper containers running by doing:* `docker ps -f "name=hopper"`
 
-## Architecture
+## Design & Implementation
 
-<div align="center"><img src="images/arch.png" align="center" alt="Runemaster
+### Overview
+
+<div align="center"><img src="images/arch.png" align="center" alt="Overview
+Hopper"/></div><br>
+
+### Master
+
+The Masters job is to schedule fuzz tasks on Nodes in the cluster, keep track of
+coverage, mutate seeds, and produce reports.The Master handles all these
+responsibilities concurrently. There are two main processes running concurrently
+on the Master, an RPC server and the Mutation Engine.
+
+<div align="center"><img src="images/master.png" align="center" alt="Master Design"/></div><br>
+
+##### Coverage: 
+
+Hopper uses a [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter) to keep
+track of coverage and to deduplicate seeds based on coverage and content.
+
+##### Mutation Engine:
+
+The mutation engine acts as a load balancer by popping energized seeds from the
+energy priority queue (EPQ), mutating them, and feeding newly formed seeds to the
+task queue, as can be seen in Figure 3.2. The Mutation Engine only mutates when
+there’s enough space in the Task Queue for more tasks, otherwise it stalls.
+Because a single energized seed can turn into tens of seeds, this can be seen as
+an inverse funnel, thus the Mutation Engine has some control of flow through the
+system.
+
+### Node
+
+A Hopper Node’s job is to run the PUT, gather and parse coverage, and report
+coverage/crash data to the Master. Each Node runs a main Fuzz loop. Nodes are
+fairly synchronous, with a few sections of parallelism for logging crashes and
+clean-up. But generally we keep each instantiation of a Node synchronous such
+that we can more easily reason about it as a discrete unit of computation.
+
+<div align="center"><img src="images/node.png" align="center" alt="Runemaster
 Icon"/></div><br>
 
