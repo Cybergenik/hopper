@@ -2,7 +2,9 @@
 
 <div align="center">
 <h3>
-Coverage-Guided Greybox Distributed Fuzzer inspired
+Distributed Fuzzer
+
+inspired
 by <a href="https://github.com/AFLplusplus/AFLplusplus">AFL++</a>
 </h3>
 
@@ -98,7 +100,7 @@ Hopper"/></div><br>
 ### Master
 
 The Masters job is to schedule fuzz tasks on Nodes in the cluster, keep track of
-coverage, mutate seeds, and produce reports.The Master handles all these
+coverage, mutate seeds, and produce reports. The Master handles all these
 responsibilities concurrently. There are two main processes running concurrently
 on the Master, an RPC server and the Mutation Engine.
 
@@ -112,12 +114,11 @@ track of coverage and to deduplicate seeds based on coverage and content.
 ##### Mutation Engine:
 
 The mutation engine acts as a load balancer by popping energized seeds from the
-energy priority queue (EPQ), mutating them, and feeding newly formed seeds to the
-task queue, as can be seen in Figure 3.2. The Mutation Engine only mutates when
-there’s enough space in the Task Queue for more tasks, otherwise it stalls.
-Because a single energized seed can turn into tens of seeds, this can be seen as
-an inverse funnel, thus the Mutation Engine has some control of flow through the
-system.
+energy priority queue (EPQ), mutating them, and feeding newly formed seeds to
+the task queue. The Mutation Engine only mutates when there’s enough space in
+the Task Queue for more tasks, otherwise it stalls. Because a single energized
+seed can turn into tens of seeds, this can be seen as an inverse funnel, thus
+the Mutation Engine has some control of flow through the system.
 
 ### Node
 
