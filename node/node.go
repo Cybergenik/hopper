@@ -1,4 +1,4 @@
-package main
+package node
 
 import (
     "os"
@@ -6,7 +6,6 @@ import (
     "path"
     "fmt"
     "log"
-    "flag"
     "strings"
     "path/filepath"
     "net/rpc"
@@ -200,39 +199,6 @@ func Node(id uint64, target string, args string, raw bool, env string, stdin boo
         default:
         }
     }
-}
-
-func main() {
-    id      := flag.Uint64("I", 0, "Node ID, usually just a unique int")
-    target  := flag.String("T", "", "instrumented target binary")
-    args    := flag.String("args", "", "args to use against target, ex: --depth=1 @@")
-    raw     := flag.Bool("raw", false, "should input be fed as pure string (default: input as a file arg)")
-    env     := flag.String("env", "", "env variables for target seperated by a `;`, ex: ARG1=foo;ARG2=bar;")
-    stdin   := flag.Bool("stdin", false, "seed should be fed as stdin or as an argument")
-    master  := flag.String("M", "localhost", "IP/address of Master")
-    port    := flag.Int("P", 6969, "Port of Master")
-        
-    flag.Parse()
-    err := ""
-    if *id == 0 {
-        err += "Hopper Node: Please provide a unique Node Id greater than 0: -I \n"
-    }
-    if *target == "" {
-        err += "Hopper Node: Please provide a command to run the target: -C\n"
-    }
-    if !strings.Contains(*args, "@@") && !*stdin {
-        err += "Hopper Node: must provide an @@ input in args if not using stdin: ex --stdin or --args @@\n"
-    }
-    if err != "" {
-        fmt.Println(err)
-        os.Exit(1)
-    }
-    _, Err := exec.LookPath(SANCOV)
-	if Err != nil {
-        log.Fatalf("Hopper Node: Node requires clang-tools utils: sanvoc")
-	}
-    masterNode := fmt.Sprintf("%s:%d", *master, *port)
-    Node(*id, *target, *args, *raw, *env, *stdin, masterNode)
 }
 
 func (n *HopperNode) call(rpcname string, args interface{}, reply interface{}) bool {

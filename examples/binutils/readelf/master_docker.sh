@@ -10,7 +10,6 @@ export HOPPER_LOG_INTERVAL=10
 
 # Spawn Master
 export HOPPER_OUT="/hopper_out"
-LOCAL_OUT="/proj/hopper-tests-PG0/readelf-dat"
 
 screen -S master -dm docker run -it --rm \
     --name hopper-master \
@@ -18,7 +17,7 @@ screen -S master -dm docker run -it --rm \
     --env HOPPER_OUT \
     --env HOPPER_LOG \
     --env HOPPER_LOG_INTERVAL \
-    --volume $LOCAL_OUT:$HOPPER_OUT \
+    --volume $(pwd)$HOPPER_OUT:$HOPPER_OUT \
     --publish 6969:6969 \
     hopper-readelf:latest \
-    bash -c "cd hopper; go build .; ./hopper -I ./examples/binutils/readelf/in -H=20"
+    bash -c "cd hopper && ./hopper-master -I ./examples/binutils/readelf/in -H=20"

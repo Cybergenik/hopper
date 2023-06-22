@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -xe
 
 # Update and install git and curl
 sudo apt-get update && sudo apt-get install -y git curl clang clang-tools gcc wget curl python3.9 tar xz-utils texinfo zlib1g-dev build-essential file
@@ -15,9 +15,8 @@ export PATH=$PATH:/usr/local/go/bin
 git clone https://github.com/Cybergenik/hopper.git
 cd hopper/
 
-go build .
-cd node/
-go build .
+go build ./cmd/hopper-master
+go build ./cmd/hopper-node
 
 cd ~
 # Build readelf
@@ -26,8 +25,8 @@ cp hopper/examples/binutils/install/bin/arm-linux-gnueabi-readelf ./readelf_targ
 
 cd ~
 # Copy run scripts
-cp hopper/hopper ./master
-cp hopper/node/node .
+cp hopper/hopper-master .
+cp hopper/hopper-node .
 cp -r hopper/examples/binutils/readelf/in .
 cp ~/hopper/examples/binutils/readelf/master.sh .
 cp ~/hopper/examples/binutils/readelf/node.sh .

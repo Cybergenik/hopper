@@ -14,12 +14,10 @@ fi
 
 
 # build Node
-cd node;
-go build .;
-cd ..;
+go build ./cmd/hopper-node
 
 # Create Nodes
 for ((i=$1;i<=$2;i++))
 do
-    nohup ./node/node -I $i -T ./readelf_target -M localhost --args '-a @@' &> /dev/null &
+    nohup ./hopper-node -I $i -T ./readelf_target -M localhost --args '-a @@' &> /dev/null &
 done

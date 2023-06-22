@@ -54,7 +54,7 @@ Ex:
 - <kbd>-P</kbd>: Port to host Master on, defaults to `6969`
 
 Ex:
-> `go build . && ./hopper -H 5 -I test/in`
+> `go build ./cmd/hopper-master && ./hopper-master -H 5 -I test/in`
 
 #### Node:
 
@@ -71,9 +71,9 @@ Ex:
   to `false`
 
 Ex: 
-> Args: `cd node; go build .; ./node -I 1 -T target --args "--depth=2 @@"` 
+> Args: `go build ./cmd/hopper-node; ./hopper-node -I 1 -T target --args "--depth=2 @@"` 
 >
-> Stdin: `cd node; go build .; ./node -I 1 -T target --stdin`
+> Stdin: `go build ./cmd/hopper-node; ./hopper-node -I 1 -T target --stdin`
 
 ## Simple Dockerized Demo:
 

@@ -19,7 +19,7 @@ docker run -it --rm \
     --network hopper-subnet \
     --publish 6969:6969 \
     hopper-node:latest \
-    bash -c "cd hopper; go build .; ./hopper -I ./examples/parse/in -H=5"
+    bash -c "cd /hopper && ./hopper-master -I ./examples/parse/in -H=5"
 ## Clean up subnet
 docker network rm hopper-subnet &> /dev/null
 
