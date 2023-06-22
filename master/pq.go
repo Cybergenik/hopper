@@ -1,18 +1,18 @@
 package master
 
 import (
+	"container/heap"
 	"fmt"
-    "container/heap"
-    c "github.com/Cybergenik/hopper/common"
+	c "github.com/Cybergenik/hopper/common"
 )
 
 const MAX = 5_000
 
 // An Item is something we manage in a priority queue.
 type PQItem struct {
-    Seed     []byte
-    Energy   float64
-    Id       c.FTaskID
+	Seed     []byte
+	Energy   float64
+	Id       c.FTaskID
 	priority float64
 	index    int
 }
@@ -21,6 +21,7 @@ type PQItem struct {
 type PriorityQueue []*PQItem
 
 func (pq PriorityQueue) Len() int { return len(pq) }
+
 // Max heap
 func (pq PriorityQueue) Less(i, j int) bool { return pq[i].priority > pq[j].priority }
 
@@ -33,28 +34,28 @@ func (pq PriorityQueue) Swap(i, j int) {
 // Changed to keep a fixed size PQ
 func (pq *PriorityQueue) Push(x any) {
 	n := len(*pq)
-    item := x.(*PQItem)
-    if n >= MAX {
-        smallestIndex := 0
-        smallest := 10.0
-        for _, item := range *pq {
-            if item.priority < smallest {
-                smallest = item.priority
-                smallestIndex = item.index
-            }
-        }
-        if item.priority > smallest {
-            sItem := (*pq)[smallestIndex]
-            sItem.priority = item.priority
-            sItem.Energy = item.Energy
-            sItem.Seed = item.Seed
-            (*pq)[smallestIndex] = sItem
-            heap.Fix(pq, smallestIndex)
-        }
-    } else {
-        item.index = n
-        *pq = append(*pq, item)
-    }
+	item := x.(*PQItem)
+	if n >= MAX {
+		smallestIndex := 0
+		smallest := 10.0
+		for _, item := range *pq {
+			if item.priority < smallest {
+				smallest = item.priority
+				smallestIndex = item.index
+			}
+		}
+		if item.priority > smallest {
+			sItem := (*pq)[smallestIndex]
+			sItem.priority = item.priority
+			sItem.Energy = item.Energy
+			sItem.Seed = item.Seed
+			(*pq)[smallestIndex] = sItem
+			heap.Fix(pq, smallestIndex)
+		}
+	} else {
+		item.index = n
+		*pq = append(*pq, item)
+	}
 }
 
 func (pq *PriorityQueue) Pop() any {
@@ -76,15 +77,15 @@ func main() {
 	heap.Init(&pq)
 	// Insert a new item and then modify its priority.
 	item1 := &PQItem{
-		Id:    321321,
+		Id:       321321,
 		priority: 3,
 	}
 	item2 := &PQItem{
-		Id:    22121,
+		Id:       22121,
 		priority: 10,
 	}
 	item3 := &PQItem{
-		Id:    2199918,
+		Id:       2199918,
 		priority: 7,
 	}
 	heap.Push(&pq, item1)

@@ -4,7 +4,6 @@ https://github.com/bits-and-blooms/bloom. We require this because the default
 implementation of bloomfilter interface doesn't fit the exact requirments needed
 by Hopper. TLDR; the hash needs to sometimes be computed on worker nodes.
 
-
 The bloom library relied on the excellent murmur library
 by Sébastien Paolacci. Unfortunately, it involved some heap
 allocation. We want to avoid any heap allocation whatsoever
@@ -20,14 +19,15 @@ All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of the library nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+  - Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  - Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+  - Neither the name of the library nor the
+    names of its contributors may be used to endorse or promote products
+    derived from this software without specific prior written permission.
+
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -58,7 +58,7 @@ type Digest128 struct {
 	h2 uint64 // Unfinalized running hash part 2.
 }
 
-//bmix will hash blocks (16 bytes)
+// bmix will hash blocks (16 bytes)
 func (d *Digest128) bmix(p []byte) {
 	nblocks := len(p) / block_size
 	for i := 0; i < nblocks; i++ {
@@ -68,7 +68,7 @@ func (d *Digest128) bmix(p []byte) {
 	}
 }
 
-//bmix_words will hash two 64-bit words (16 bytes)
+// bmix_words will hash two 64-bit words (16 bytes)
 func (d *Digest128) bmix_words(k1, k2 uint64) {
 	h1, h2 := d.h1, d.h2
 
@@ -249,12 +249,14 @@ func fmix64(k uint64) uint64 {
 // It is designed to never allocate memory on the heap. So it
 // works without any byte buffer whatsoever.
 // It is designed to be strictly equivalent to
-// 			a1 := []byte{1}
-//          hasher := murmur3.New128()
-//          hasher.Write(data) // #nosec
-//          v1, v2 := hasher.Sum128()
-//          hasher.Write(a1) // #nosec
-//          v3, v4 := hasher.Sum128()
+//
+//				a1 := []byte{1}
+//	         hasher := murmur3.New128()
+//	         hasher.Write(data) // #nosec
+//	         v1, v2 := hasher.Sum128()
+//	         hasher.Write(a1) // #nosec
+//	         v3, v4 := hasher.Sum128()
+//
 // See TestHashRandom.
 func (d *Digest128) Sum256(data []byte) (hash1, hash2, hash3, hash4 uint64) {
 	// We always start from zero.

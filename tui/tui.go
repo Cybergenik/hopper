@@ -1,13 +1,13 @@
 package tui
 
 import (
-    "os"
 	"fmt"
+	"os"
+	"path"
 	"time"
-    "path"
 
-	h "github.com/Cybergenik/hopper/master"
 	c "github.com/Cybergenik/hopper/common"
+	h "github.com/Cybergenik/hopper/master"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -30,20 +30,20 @@ type TickMsg time.Time
 type Model struct {
 	oldStats c.Stats
 	stats    c.Stats
-    master   *h.Hopper
+	master   *h.Hopper
 }
 
 // Style
 const (
 	magneta  = lipgloss.Color("#FF00FF")
 	darkGray = lipgloss.Color("#C0C0C0")
-	snow	 = lipgloss.Color("#FFFAFA")
+	snow     = lipgloss.Color("#FFFAFA")
 )
 
 var (
 	labelstyle = lipgloss.NewStyle().Foreground(magneta)
 	datastyle  = lipgloss.NewStyle().Foreground(snow)
-	substyle   =  lipgloss.NewStyle().Foreground(darkGray)
+	substyle   = lipgloss.NewStyle().Foreground(darkGray)
 )
 
 func tickStats() tea.Cmd {
@@ -56,7 +56,7 @@ func tickStats() tea.Cmd {
 }
 
 func (m Model) Init() tea.Cmd {
-    cmds := []tea.Cmd{tea.ClearScreen, tickStats()}
+	cmds := []tea.Cmd{tea.ClearScreen, tickStats()}
 	return tea.Batch(cmds...)
 }
 
@@ -69,19 +69,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.master.Kill()
 			return m, tea.Quit
 		case tea.KeySpace:
-            out_dir, ok := os.LookupEnv("HOPPER_OUT")
-            var out string
-            if ok {
-                out = path.Join(out_dir, "hopper.report.Space")
-            } else {
-                out = "hopper.report.Space"
-            }
-            os.WriteFile(out, []byte(m.master.Report()), 0666)
+			out_dir, ok := os.LookupEnv("HOPPER_OUT")
+			var out string
+			if ok {
+				out = path.Join(out_dir, "hopper.report.Space")
+			} else {
+				out = "hopper.report.Space"
+			}
+			os.WriteFile(out, []byte(m.master.Report()), 0666)
 			return m, nil
 		}
 	case TickMsg:
-        m.oldStats = m.stats
-        m.stats = m.master.Stats()
+		m.oldStats = m.stats
+		m.stats = m.master.Stats()
 		return m, tickStats()
 	}
 	return m, nil
@@ -142,8 +142,8 @@ func (m Model) View() string {
 
 func InitModel(master *h.Hopper) Model {
 	return Model{
-        oldStats: c.Stats{},
-        stats:    c.Stats{},
-        master:   master,
+		oldStats: c.Stats{},
+		stats:    c.Stats{},
+		master:   master,
 	}
 }

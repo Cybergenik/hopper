@@ -1,8 +1,8 @@
 package common
 
 import (
-    "crypto/md5"
-    "encoding/binary"
+	"crypto/md5"
+	"encoding/binary"
 )
 
 type FTaskID uint64
@@ -10,8 +10,8 @@ type FTaskID uint64
 type BFHash [4]uint64
 
 func Hash(b []byte) FTaskID {
-    sum := md5.Sum(b)
-    return FTaskID(binary.BigEndian.Uint64([]byte(sum[:])))
+	sum := md5.Sum(b)
+	return FTaskID(binary.BigEndian.Uint64([]byte(sum[:])))
 }
 
 // baseHashes returns the four hash values of data that are used to create k
@@ -25,46 +25,45 @@ func BloomHash(data []byte) BFHash {
 }
 
 type SeedInfo struct {
-    NodeId      uint64
-    Id          FTaskID
-    Bytes       []byte
-    CovHash     BFHash
-    CovEdges    uint64
-    Crash       bool
+	NodeId   uint64
+	Id       FTaskID
+	Bytes    []byte
+	CovHash  BFHash
+	CovEdges uint64
+	Crash    bool
 }
 
 type Stats struct {
-    Its           uint64
-    Port          int
-    Havoc         uint64
-    CrashN        uint64
-    SeedsN        uint64
-    MaxCov        uint64
-    UniqueCrashes int
-    UniquePaths   uint64
-    Nodes         int
+	Its           uint64
+	Port          int
+	Havoc         uint64
+	CrashN        uint64
+	SeedsN        uint64
+	MaxCov        uint64
+	UniqueCrashes int
+	UniquePaths   uint64
+	Nodes         int
 }
 
 type FTask struct {
-    Id       FTaskID
-    Seed     []byte
-    Die      bool
+	Id   FTaskID
+	Seed []byte
+	Die  bool
 }
 
 type FTaskArgs struct {
-
 }
 
 type UpdateReply struct {
-    Log      bool
+	Log bool
 }
 
 type UpdateFTask struct {
-    NodeId   uint64
-    Ok       bool
-    Id       FTaskID
-    CovHash  BFHash
-    CovEdges uint64
-    Crash    bool
-    CrashMsg string
+	NodeId   uint64
+	Ok       bool
+	Id       FTaskID
+	CovHash  BFHash
+	CovEdges uint64
+	Crash    bool
+	CrashMsg string
 }
