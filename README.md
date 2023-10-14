@@ -18,6 +18,10 @@ distributed environments, it's not meant to replace AFL++ in most cases.
 
 </div>
 
+<div align="center">
+<a href="https://www.flux.utah.edu/paper/lremes-thesis" target="_blank">Published Paper</a>
+</div>
+
 ## Usage
 
 #### Pre-Reqs:
