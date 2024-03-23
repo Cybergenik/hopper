@@ -22,7 +22,7 @@ We actively welcome your pull requests.
 
 ## Bug fix PRs
 
-For major vulnerability, please report them to [Cybergenik](cybergenik@gmail.com) immediately, **instead of making a public bug report**.
+For major vulnerability, please report them to [Cybergenik](mailto:cybergenik@gmail.com) immediately, **instead of making a public bug report**.
 
 For standard bug fixes:
 
