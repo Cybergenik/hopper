@@ -11,9 +11,49 @@ import (
 	n "github.com/Cybergenik/hopper/node"
 )
 
+func printHelp() {
+	fmt.Printf(
+        `NAME:
+    Hopper: Fuzzing Node
+
+SYNOPSIS: 
+    hopper-node [OPTIONS]... [--stdin|--args] -I <id> -T <path to target>
+
+DESCRIPTION:
+    Fuzzing Node, runs PUT and reports to Hopper Master
+
+    -I 
+        node ID, must be a unique unsigned integer
+    -T
+        path to instrumented target binary
+    -M
+        IP/address of Master, defaults to localhost
+    -P
+        port of Master, defaults to 6969
+    --raw 
+        feed raw seed bytes directly into the PUT, defaults to false. Hopper will put bytes in a file and feed that file to target
+    --args 
+        args to use against target, ex: --depth=1 @@
+    --env 
+        env variables for target seperated by a ';' ex: ENV1=foo;ENV2=bar;
+    --stdin 
+        feed seed through stdin, instead of as argument
+    --help 
+        prints this message
+
+EXAMPLES:
+    hopper-node -I 1 -T target --args "--depth=2 @@"
+        runs fuzzing node with id 1, target binary "target", with PUT arg "--depth=2", and it will replace "@@" with a file name of the seed
+
+    hopper-node -I 22 -T /home/user/trash/emacs --stdin
+        runs fuzzing node with id 22, target binary "/home/user/trash/emacs", and will feed the seed directly through stdin
+`)
+}
+
 func main() {
-	id := flag.Uint64("I", 0, "Node ID, usually just a unique int")
-	target := flag.String("T", "", "instrumented target binary")
+	help := flag.Bool("help", false, "help menu")
+	id := flag.Uint64("I", 0, "Node ID, must be a unique unsigned integer")
+	target := flag.String("T", "", "path to instrumented target binary")
 	args := flag.String("args", "", "args to use against target, ex: --depth=1 @@")
 	raw := flag.Bool("raw", false, "should input be fed as pure string (default: input as a file arg)")
 	env := flag.String("env", "", "env variables for target seperated by a `;`, ex: ARG1=foo;ARG2=bar;")
@@ -22,6 +62,10 @@ func main() {
 	port := flag.Int("P", 6969, "Port of Master")
 
 	flag.Parse()
+	if *help {
+		printHelp()
+		os.Exit(0)
+	}
 	err := ""
 	if *id == 0 {
 		err += "Hopper Node: Provide a unique Node Id greater than 0: -I \n"

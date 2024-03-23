@@ -13,9 +13,35 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// TODO: Update Help
 func printHelp() {
-	fmt.Printf("Hopper Master: go run master.go -I input/ -H=2 -P=6969\n")
+	fmt.Printf(
+        `NAME:
+    Hopper: Master Node
+
+SYNOPSIS: 
+    hopper-master [OPTIONS]... -I <dir to corpus>
+
+DESCRIPTION:
+    Master node, used to orchestrate fuzzing campaigns
+
+    -I (required)
+        path to input corpus, directory containing files each being a seed
+    -H 
+        havoc level to use in mutator, defaults to 1 (recommended: increase havoc for larger seeds)
+    -P 
+        port to host Master on, defaults to 6969
+    --no-tui 
+        Don't Generate TUI, defaults to false
+    --help 
+        Prints this message
+
+EXAMPLES:
+    hopper-master -H=2 -P=6666 -I input/  
+        runs master with havoc level 2, on port 6666, using corpus in "input/" directory, where each file is a seed
+
+    hopper-master -H=5 -I test/in
+        runs master with havoc level 5, on port 6969, using corpus in "test/in" directory, where each file is a seed
+`)
 }
 
 func initTUI(master *m.Hopper) {
@@ -52,12 +78,9 @@ func main() {
 	//TODO: impl thread mode, shouldn't be too hard
 	//thread_mode := flag.Bool("T", false, "Port to use, defaults to :6969")
 	flag.Parse()
-	if *help {
+	if *help || *input == "" {
 		printHelp()
 		os.Exit(0)
-	}
-	if *input == "" {
-		fmt.Fprintln(os.Stderr, "Hopper Master: Please provide a directory with files as input seeds")
 	}
 	//Parse corpus seeds
 	corpus := readCorpus(*input)
