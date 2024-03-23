@@ -13,7 +13,7 @@ import (
 
 func printHelp() {
 	fmt.Printf(
-        `NAME:
+		`NAME:
     Hopper: Fuzzing Node
 
 SYNOPSIS: 
@@ -66,15 +66,13 @@ func main() {
 		printHelp()
 		os.Exit(0)
 	}
-	err := ""
+	var err string
 	if *id == 0 {
-		err += "Hopper Node: Provide a unique Node Id greater than 0: -I \n"
-	}
-	if *target == "" {
-		err += "Hopper Node: Provide a command to run the target: -C\n"
-	}
-	if !strings.Contains(*args, "@@") && !*stdin {
-		err += "Hopper Node: Must provide an @@ input in args if not using stdin: ex --stdin or --args @@\n"
+		err = "Hopper Node: Provide a unique Node Id greater than 0: -I\n"
+	} else if *target == "" {
+		err = "Hopper Node: Provide a command to run the target: -C\n"
+	} else if !strings.Contains(*args, "@@") && !*stdin {
+		err = "Hopper Node: Must provide an @@ input in args if not using stdin: ex --stdin or --args @@\n"
 	}
 	if err != "" {
 		err += "--help | -h : to show help menu"

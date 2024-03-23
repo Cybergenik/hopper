@@ -15,7 +15,7 @@ import (
 
 func printHelp() {
 	fmt.Printf(
-        `NAME:
+		`NAME:
     Hopper: Master Node
 
 SYNOPSIS: 
