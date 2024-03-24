@@ -24,7 +24,7 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Context**
-OS Master and Node are running on (`uname -v` ):
+OS Master and Node are running on (`uname -v`):
 
 PUT name and version (if applicable):
 
