@@ -2,6 +2,7 @@
 
 export HOPPER_OUT="/hopper_out"
 
+## Spawn Nodes
 for ((i=$1;i<=$2;i++))
 do
     nohup docker run --rm \

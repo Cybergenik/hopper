@@ -79,20 +79,36 @@ Ex:
 >
 > Stdin: `go build ./cmd/hopper-node; ./hopper-node -I 1 -T target --stdin`
 
-## Simple Dockerized Demo:
+## Containerized Demos:
 
-If you want to run Hopper locally with 10 fuzzing Nodes on a test application
-with a known vulnerability you can do the following:
+*You can also look at all the Hopper containers running by doing:* `docker ps -f "name=hopper"`
+
+### Fuzzing simple parse util:
+
+Hopper running locally with 10 fuzzing Nodes, fuzzing a test application with a known
+vulnerability:
 
 1. Clone project: `git clone https://github.com/Cybergenik/hopper.git && cd hopper`
-2. Build Image: `docker build -t hopper-node .`
-3. Run Master: `./examples/parse/docker/run_master_docker.sh` 
-4. Run Nodes: `./examples/parse/docker/run_node_docker.sh 1 10` (I'd recommend no more
+2. Build base Hopper image: `docker build -t hopper-node .`
+3. Run Master: `./examples/parse/docker/master_docker.sh` 
+4. Run Nodes: `./examples/parse/docker/node_docker.sh 1 10` (I'd recommend no more
    than 1x # of logical cores on your machine, any more nodes on one system
    and they just get throttled and competing for CPU time)
 5. Look at the nice TUI :>
 
-*You can also look at all the Hopper containers running by doing:* `docker ps -f "name=hopper"`
+### Fuzzing Readelf:
+
+Hopper running locally with 10 fuzzing Nodes, fuzzing GNU `binutils-2.40 readelf`:
+
+1. Clone project: `git clone https://github.com/Cybergenik/hopper.git && cd hopper`
+2. Build base Hopper image: `docker build -t hopper-node .`
+3. Build readelf image: `docker build -t hopper-readelf ./examples/binutils/`
+4. Run Master: `./examples/binutils/readelf/master_docker.sh` 
+5. Run Nodes: `./examples/binutils/readelf/node_docker.sh 1 10` (I'd recommend no more
+   than 1x # of logical cores on your machine, any more nodes on one system
+   and they just get throttled and competing for CPU time)
+6. Look at the nice TUI :>
+
 
 ## Design & Implementation
 
