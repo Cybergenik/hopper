@@ -12,7 +12,7 @@ do
         --name hopper-node$i \
         --env TERM \
         --env HOPPER_OUT \
-        --volume $(pwd)$HOPPER_OUT:$HOPPER_OUT \
+        --volume $LOCAL_OUT:$HOPPER_OUT \
         hopper-readelf:latest \
         bash -c "
             cd /hopper;
