@@ -29,15 +29,15 @@ type HopperNode struct {
 	conn   *rpc.Client
 }
 
-func (n *HopperNode) getFTask() (c.FTask, bool) {
+func (n *HopperNode) getFTask() (bool, c.FTask) {
 	args := c.FTaskArgs{}
 	t := c.FTask{}
 
 	if ok := n.call("Hopper.GetFTask", &args, &t); !ok {
 		log.Println("Error Getting FTask!")
-		return t, ok
+		return ok, t
 	}
-	return t, true
+	return true, t
 }
 
 // Returns Bool : True if Master wants to Log crash
@@ -141,7 +141,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
 
 func (n *HopperNode) taskGenerator(taskQ chan c.FTask) {
 	for !n.killed() {
-		ftask, ok := n.getFTask()
+		ok, ftask := n.getFTask()
 		if !ok || ftask.Die {
 			atomic.StoreInt32(&n.dead, 1)
 			return
