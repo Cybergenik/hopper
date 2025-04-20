@@ -2,6 +2,7 @@ package node
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"net/rpc"
@@ -9,12 +10,13 @@ import (
 	"os/exec"
 	"path"
 	"strings"
-	"sync/atomic"
 
 	c "github.com/Cybergenik/hopper/common"
 )
 
 type HopperNode struct {
+	ctx    context.Context
+	cancel context.CancelFunc
 	outDir string
 	id     uint64
 	target string
@@ -24,7 +26,6 @@ type HopperNode struct {
 	raw    bool
 	master string
 	crashN uint64
-	dead   int32
 	conn   *rpc.Client
 }
 
@@ -49,8 +50,12 @@ func (n *HopperNode) updateFTask(ut c.UpdateFTask) bool {
 }
 
 func (n *HopperNode) killed() bool {
-	z := atomic.LoadInt32(&n.dead)
-	return z == 1
+	select {
+	case <-n.ctx.Done():
+		return true
+	default:
+	}
+	return false
 }
 
 func (n *HopperNode) fuzz(t c.FTask) {
@@ -111,6 +116,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
 		stdin.Write(t.Seed)
 	}
 	err := cmd.Wait()
+
 	//Crash Detected
 	if err != nil {
 		if report := ParseAsan(errOut.String()); report != "" {
@@ -129,7 +135,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
 		}
 		persistCrash := n.updateFTask(update)
 		if persistCrash {
-            log.Println("Found crash, persisting...")
+			log.Println("Found crash, persisting...")
 			PersistCrash(t.Seed, errOut, N, n.outDir)
 		}
 	}(n.crashN)
@@ -139,13 +145,14 @@ func (n *HopperNode) taskGenerator(taskQ chan c.FTask) {
 	for !n.killed() {
 		ok, ftask := n.getFTask()
 		if !ok || ftask.Die {
-            log.Fatal("Node dying... ")
+			n.cancel()
+			log.Println("Node dying... ")
 		}
 		taskQ <- ftask
 	}
 }
 
-func Node(id uint64, target string, args string, raw bool, env string, stdin bool, master string) {
+func Node(ctx context.Context, id uint64, target string, args string, raw bool, env string, stdin bool, master string) {
 	outDir := os.Getenv("HOPPER_OUT")
 	if sancovBin := os.Getenv("SANCOV_BIN"); sancovBin != "" {
 		SANCOV = sancovBin
@@ -156,7 +163,10 @@ func Node(id uint64, target string, args string, raw bool, env string, stdin boo
 	} else {
 		location = fmt.Sprintf("Node%d", id)
 	}
+	nodeCtx, cancel := context.WithCancel(ctx)
 	n := HopperNode{
+		ctx:    nodeCtx,
+		cancel: cancel,
 		outDir: location,
 		id:     id,
 		target: target,
@@ -195,6 +205,7 @@ func Node(id uint64, target string, args string, raw bool, env string, stdin boo
 	for !n.killed() {
 		select {
 		case task := <-taskQ:
+			log.Printf("Executing Task: %v\n", task.Id)
 			n.fuzz(task)
 		default:
 		}

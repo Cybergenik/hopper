@@ -54,11 +54,6 @@ func GetCoverage(pid int) ([]string, bool) {
 	}
 	allCoveredEdges := []string{}
 	for _, sancovFile := range sancovMatches {
-		defer func(f string) {
-			if err := os.Remove(f); err != nil {
-				log.Println(err)
-			}
-		}(sancovFile)
 		cov_cmd := exec.Command(SANCOV,
 			"--print",
 			sancovFile,
@@ -69,6 +64,11 @@ func GetCoverage(pid int) ([]string, bool) {
 			log.Println(err)
 			continue
 		}
+		go func(f string) {
+			if err := os.Remove(f); err != nil {
+				log.Println(err)
+			}
+		}(sancovFile)
 		// Coverage tree parsing
 		covered := strings.Split(strings.Trim(out.String(), "\n"), "\n")
 		for _, v := range covered {

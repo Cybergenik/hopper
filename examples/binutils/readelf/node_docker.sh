@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export HOPPER_OUT="/hopper_out"
+HOPPER_OUT="/hopper_out"
 
 START_ID=$1
 NUM_NODES=$2
@@ -15,6 +15,6 @@ do
         --volume $(pwd)$HOPPER_OUT:$HOPPER_OUT \
         --network hopper-readelf-subnet \
         hopper-readelf:latest \
-        bash -c "hopper-node -I $i -T readelf_target -M hopper-master-readelf --args '-a @@'" &> /dev/null &
+        bash -c "hopper-node -I $i -T /readelf_target -M hopper-master-readelf --args '-a @@'" &> /dev/null &
     echo "Started hopper-node-readelf-${i}"
 done

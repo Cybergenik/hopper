@@ -20,7 +20,7 @@ docker run --rm -it \
     --network hopper-parse-subnet \
     --publish 6969:6969 \
     hopper-node:latest \
-    bash -c "hopper-master -I ${CORPUS_PATH} -H ${HAVOC} -P 6969 --no-tui"
+    bash -c "hopper-master -I ${CORPUS_PATH} -H ${HAVOC} -P 6969"
 
 ## Clean up subnet
 docker network rm --force hopper-parse-subnet

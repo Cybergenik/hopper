@@ -21,8 +21,8 @@ import (
 )
 
 type Hopper struct {
-    // Campaign ctx
-    ctx context.Context
+	// Campaign ctx
+	ctx context.Context
 	// Fuzz Campaign Corpus
 	corpus [][]byte
 	// Havoc level to use in mutator
@@ -125,12 +125,12 @@ func (h *Hopper) Stats() c.Stats {
 }
 
 func (h *Hopper) killed() bool {
-    select {
-    case <-h.ctx.Done():
-        return true
-    default:
-        return false
-    }
+	select {
+	case <-h.ctx.Done():
+		return true
+	default:
+		return false
+	}
 }
 
 func (h *Hopper) GetFTask(args *c.FTaskArgs, task *c.FTask) error {
@@ -194,7 +194,7 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
 func (h *Hopper) mutGenerator() {
 	for !h.killed() {
 		availableCap := cap(h.qChan) - len(h.qChan)
-		if h.pq.Len() > 0 && availableCap >= (cap(h.qChan)/3) {
+		if h.pq.Len() > 0 && availableCap >= (cap(h.qChan)/2) {
 			//Baseline .01% of available queue capacity
 			baseline := float64(availableCap) * .001
 

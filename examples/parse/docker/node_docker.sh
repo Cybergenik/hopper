@@ -24,7 +24,7 @@ do
         --network hopper-parse-subnet \
         hopper-node:latest \
         bash -c "asan_compile /getdomain.c &&
-            hopper-node -I $i -T ./target -M hopper-master-parse --raw --args '@@'" &> /dev/null &
+           hopper-node -I $i -T /target -M hopper-master-parse --raw --args '@@'" &> /dev/null &
 
     echo "Started hopper-parse-node-${i}"
 done

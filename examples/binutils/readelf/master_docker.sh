@@ -9,7 +9,7 @@ docker network create hopper-readelf-subnet &> /dev/null
 
 # Master config
 HOPPER_OUT="/hopper_out"
-CORPUS_PATH="/corpus"
+CORPUS_PATH="/readelf/corpus"
 HAVOC=20
 
 docker run -it --rm \
