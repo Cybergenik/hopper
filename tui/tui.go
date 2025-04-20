@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -28,9 +29,11 @@ const (
 type TickMsg time.Time
 
 type Model struct {
-	oldStats c.Stats
-	stats    c.Stats
-	master   *h.Hopper
+	ctx       context.Context
+	cancelCtx context.CancelFunc
+	oldStats  c.Stats
+	stats     c.Stats
+	master    *h.Hopper
 }
 
 // Style
@@ -66,7 +69,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			fmt.Println("Killing Hopper")
-			m.master.Kill()
+			m.cancelCtx()
 			return m, tea.Quit
 		case tea.KeySpace:
 			out_dir, ok := os.LookupEnv("HOPPER_OUT")
@@ -140,10 +143,12 @@ func (m Model) View() string {
 	return body
 }
 
-func InitModel(master *h.Hopper) Model {
+func InitModel(ctx context.Context, cancel context.CancelFunc, master *h.Hopper) Model {
 	return Model{
-		oldStats: c.Stats{},
-		stats:    c.Stats{},
-		master:   master,
+		ctx:       ctx,
+		cancelCtx: cancel,
+		oldStats:  c.Stats{},
+		stats:     c.Stats{},
+		master:    master,
 	}
 }

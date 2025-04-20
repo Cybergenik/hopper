@@ -1,19 +1,30 @@
 #!/bin/bash
+set -e
 
-export HOPPER_OUT="/hopper_out"
+if [ -z "$1" ] || [ -z "$2" ]; then
+  echo "Usage: $0 <start_node_id> <num_nodes>"
+  exit 1
+fi
+
+HOPPER_OUT="/hopper_out"
+TARGET="/getdomain.c"
+
+START_ID=$1
+NUM_NODES=$2
 
 ## Spawn Nodes
-for ((i=$1;i<=$2;i++))
+for ((i=START_ID; i < START_ID + NUM_NODES; i++));
 do
     nohup docker run --rm \
-        --name hopper-node$i \
+        --name hopper-node-parse-${i} \
         --env TERM \
-        --env HOPPER_OUT \
+        --env HOPPER_OUT=$HOPPER_OUT \
         --volume $(pwd)$HOPPER_OUT:$HOPPER_OUT \
-        --network hopper-subnet \
+        --volume $(pwd)$TARGET:$TARGET \
+        --network hopper-parse-subnet \
         hopper-node:latest \
-        bash -c "
-            cd /hopper;
-            ./compile examples/parse/getdomain.c
-            ./hopper-node -I $i -T ./target -M hopper-master --raw --args '@@'" &> /dev/null &
+        bash -c "asan_compile /getdomain.c &&
+           hopper-node -I $i -T /target -M hopper-master-parse --raw --args '@@'" &> /dev/null &
+
+    echo "Started hopper-parse-node-${i}"
 done

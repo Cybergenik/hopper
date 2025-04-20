@@ -1,0 +1,30 @@
+syntax = "proto3";
+package hopper;
+
+import "google/protobuf/timestamp.proto";
+
+
+service HopperMaster {
+    rpc GetFTask() returns (FTask) {}
+    rpc UpdateFTask(FTaskUpdate) returns (UpdateReply) {}
+}
+
+message FTask {
+    uint64 task_id = 1;
+    bytes seed = 2;
+    bool die = 3;
+}
+
+message FTaskUpdate {
+	uint64 node_id = 1;
+	bool ok = 2;
+    uint64 task_id = 3;
+	repeated fixed64 coverage_hash = 4;
+    uint64 covered_edges = 5;
+    bool crash = 6;
+    optional string crash_message = 7;
+}
+
+message UpdateReply {
+	bool log_crash = 1;
+}

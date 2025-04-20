@@ -90,8 +90,8 @@ vulnerability:
 
 1. Clone project: `git clone https://github.com/Cybergenik/hopper.git && cd hopper`
 2. Build base Hopper image: `docker build -t hopper-node .`
-3. Run Master: `./examples/parse/docker/master_docker.sh` 
-4. Run Nodes: `./examples/parse/docker/node_docker.sh 1 10` (I'd recommend no more
+3. Run Master: `cd ./examples/parse && ./docker/master_docker.sh` 
+4. Run Nodes: `cd ./examples/parse && ./docker/node_docker.sh 1 10` (I'd recommend no more
    than 1x # of logical cores on your machine, any more nodes on one system
    and they just get throttled and competing for CPU time)
 5. Look at the nice TUI :>
@@ -100,15 +100,18 @@ vulnerability:
 
 Hopper running locally with 10 fuzzing Nodes, fuzzing GNU `binutils-2.40 readelf`:
 
-1. Clone project: `git clone https://github.com/Cybergenik/hopper.git && cd hopper`
+1. Clone hopper: `git clone https://github.com/Cybergenik/hopper.git && cd hopper`
 2. Build base Hopper image: `docker build -t hopper-node .`
-3. Build readelf image: `docker build -t hopper-readelf ./examples/binutils/`
-4. Run Master: `./examples/binutils/readelf/master_docker.sh` 
-5. Run Nodes: `./examples/binutils/readelf/node_docker.sh 1 10` (I'd recommend no more
+3. Build readelf image: `cd ./examples/binutils/ && docker build -t hopper-readelf .`
+4. Run Master: `./readelf/master_docker.sh` 
+5. Run Nodes: `./readelf/node_docker.sh 1 10` (I'd recommend no more
    than 1x # of logical cores on your machine, any more nodes on one system
    and they just get throttled and competing for CPU time)
 6. Look at the nice TUI :>
 
+### Fuzzing jq:
+
+Hopper jq [example](./examples/jq/README.md)
 
 ## Design & Implementation
 

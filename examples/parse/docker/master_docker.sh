@@ -1,25 +1,26 @@
-#!/bin/bash
+ #!/bin/bash
+set -e
 
-# Logger:
-#export HOPPER_LOG=1
-#export HOPPER_LOG_INTERVAL=1
+# Master config
+HOPPER_OUT="/hopper_out"
+CORPUS_PATH="/corpus"
+HAVOC=10
 
-# docker build -t hopper-node .
-## Create Hopper subnet
-docker network create hopper-subnet &> /dev/null
-export HOPPER_OUT="/hopper_out"
-## Spawn Master
-docker run -it --rm \
-    --name hopper-master \
+# create docker subnet
+docker network create hopper-parse-subnet
+
+docker run --rm -it \
+    --name hopper-master-parse \
     --env TERM \
-    --env HOPPER_OUT \
-    --env HOPPER_LOG \
-    --env HOPPER_LOG_INTERVAL \
+    --env HOPPER_OUT=$HOPPER_OUT \
+    --env HOPPER_LOG=1 \
+    --env HOPPER_LOG_INTERVAL=10 \
     --volume $(pwd)$HOPPER_OUT:$HOPPER_OUT \
-    --network hopper-subnet \
+    --volume $(pwd)$CORPUS_PATH:$CORPUS_PATH \
+    --network hopper-parse-subnet \
     --publish 6969:6969 \
     hopper-node:latest \
-    bash -c "cd /hopper && ./hopper-master -I ./examples/parse/in -H=5"
-## Clean up subnet
-docker network rm hopper-subnet &> /dev/null
+    bash -c "hopper-master -I ${CORPUS_PATH} -H ${HAVOC} -P 6969"
 
+## Clean up subnet
+docker network rm --force hopper-parse-subnet

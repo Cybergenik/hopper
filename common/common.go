@@ -34,15 +34,17 @@ type SeedInfo struct {
 }
 
 type Stats struct {
-	Its           uint64
-	Port          int
-	Havoc         uint64
-	CrashN        uint64
-	SeedsN        uint64
-	MaxCov        uint64
-	UniqueCrashes int
-	UniquePaths   uint64
-	Nodes         int
+	Its             uint64
+	Port            int
+	Havoc           uint64
+	CrashN          uint64
+	SeedsN          uint64
+	ReadyToFuzzQ    int
+	EnergyMutationQ int
+	MaxCov          uint64
+	UniqueCrashes   int
+	UniquePaths     uint64
+	Nodes           int
 }
 
 type FTask struct {

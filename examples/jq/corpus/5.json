@@ -1,0 +1,11 @@
+[
+  [
+    { "id": 1, "values": [10, 20, 30] },
+    { "id": 2, "values": [] }
+  ],
+  [
+    { "id": 3, "values": [null, false, true, "mixed"] },
+    {}
+  ],
+  []
+]

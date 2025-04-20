@@ -4,27 +4,26 @@
 # Detach: Ctrl-a Ctrl-d
 # Attach: screen -r <pid>.master
 
-## Logger:
-#export HOPPER_LOG=1
-#export HOPPER_LOG_INTERVAL=10
-
 ## Create Hopper subnet
-docker network create hopper-subnet &> /dev/null
+docker network create hopper-readelf-subnet &> /dev/null
 
-## Spawn Master
-export HOPPER_OUT="/hopper_out"
+# Master config
+HOPPER_OUT="/hopper_out"
+CORPUS_PATH="/readelf/corpus"
+HAVOC=20
 
 docker run -it --rm \
-    --name hopper-master \
+    --name hopper-master-readelf \
     --env TERM \
-    --env HOPPER_OUT \
-    --env HOPPER_LOG \
-    --env HOPPER_LOG_INTERVAL \
+    --env HOPPER_OUT=$HOPPER_OUT \
+    --env HOPPER_LOG=1 \
+    --env HOPPER_LOG_INTERVAL=10 \
     --volume $(pwd)$HOPPER_OUT:$HOPPER_OUT \
-    --network hopper-subnet \
+    --volume $(pwd)$CORPUS_PATH:$CORPUS_PATH \
+    --network hopper-readelf-subnet \
     --publish 6969:6969 \
     hopper-readelf:latest \
-    bash -c "cd hopper && ./hopper-master -I ./examples/binutils/readelf/in -H=20"
+    bash -c "hopper-master -I ${CORPUS_PATH} -H ${HAVOC}"
 
 ## Clean up subnet
-docker network rm hopper-subnet &> /dev/null
+docker network rm -f hopper-readelf-subnet

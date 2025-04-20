@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -84,5 +85,7 @@ func main() {
 		log.Fatalf("Hopper Node: Node requires clang-tools utils: sanvoc")
 	}
 	masterNode := fmt.Sprintf("%s:%d", *master, *port)
-	n.Node(*id, *target, *args, *raw, *env, *stdin, masterNode)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	n.Node(ctx, *id, *target, *args, *raw, *env, *stdin, masterNode)
 }

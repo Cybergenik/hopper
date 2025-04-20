@@ -1,0 +1,11 @@
+{
+  "metrics": {
+    "pi": 3.141592653589793,
+    "bigInt": 12345678901234567890,
+    "small": 1.23e-4,
+    "negLarge": -9.99E+307,
+    "zero": 0
+  },
+  "flags": [true, false, null, true],
+  "thresholds": [0.0, 0.5, 1.0]
+}

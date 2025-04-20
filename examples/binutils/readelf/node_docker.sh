@@ -1,18 +1,20 @@
 #!/bin/bash
 
-export HOPPER_OUT="/hopper_out"
+HOPPER_OUT="/hopper_out"
+
+START_ID=$1
+NUM_NODES=$2
 
 ## Spawn Nodes
-for ((i=$1;i<=$2;i++))
+for ((i=START_ID; i < START_ID + NUM_NODES; i++));
 do
     nohup docker run --rm \
-        --name hopper-node$i \
+        --name hopper-node-readelf-$i \
         --env TERM \
-        --env HOPPER_OUT \
+        --env HOPPER_OUT=$HOPPER_OUT \
         --volume $(pwd)$HOPPER_OUT:$HOPPER_OUT \
-        --network hopper-subnet \
+        --network hopper-readelf-subnet \
         hopper-readelf:latest \
-        bash -c "
-            cd /hopper;
-            ./hopper-node -I $i -T ./readelf_target -M hopper-master --args '-a @@'" &> /dev/null &
+        bash -c "hopper-node -I $i -T /readelf_target -M hopper-master-readelf --args '-a @@'" &> /dev/null &
+    echo "Started hopper-node-readelf-${i}"
 done

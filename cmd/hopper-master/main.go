@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -44,8 +45,9 @@ EXAMPLES:
 `)
 }
 
-func initTUI(master *m.Hopper) {
-	tui_model := tui.InitModel(master)
+func initTUI(ctx context.Context, master *m.Hopper) {
+	tuiCtx, cancel := context.WithCancel(ctx)
+	tui_model := tui.InitModel(tuiCtx, cancel, master)
 	p := tea.NewProgram(tui_model)
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
@@ -75,8 +77,6 @@ func main() {
 	havoc := flag.Uint64("H", 1, "Havoc level to use in mutator, defaults to 1")
 	port := flag.Int("P", 6969, "Port to use, defaults to :6969")
 	noTui := flag.Bool("no-tui", false, "Don't Generate TUI")
-	//TODO: impl thread mode, shouldn't be too hard
-	//thread_mode := flag.Bool("T", false, "Port to use, defaults to :6969")
 	flag.Parse()
 	if *help || *input == "" {
 		printHelp()
@@ -85,16 +85,19 @@ func main() {
 	//Parse corpus seeds
 	corpus := readCorpus(*input)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	hopper := m.InitHopper(ctx, *havoc, *port, m.Mutator, corpus)
 	if *noTui {
-		h := m.InitHopper(*havoc, *port, m.Mutator, corpus)
 		for {
-			s := h.Stats()
-			fmt.Printf("Its: %d\n", s.Its)
-			time.Sleep(10 * time.Second)
+			s := hopper.Stats()
+			fmt.Printf("Stats: %+v\n", s)
+			time.Sleep(1 * time.Second)
 		}
 	}
 	//Init TUI loop
-	initTUI(m.InitHopper(*havoc, *port, m.Mutator, corpus))
+	initTUI(ctx, hopper)
 }
 
 func loadMutEngine(filename string) func([]byte, uint64) []byte {
