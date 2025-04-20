@@ -1,21 +1,18 @@
 #!/bin/bash
 
-# Logging:
-export HOPPER_LOG=1
-export HOPPER_LOG_INTERVAL=10
-
-# Spawn Master
-export HOPPER_OUT="/hopper_out"
-LOCAL_OUT="/proj/hopper-tests-PG0/defcon"
+# Master config
+HOPPER_OUT="/hopper_out"
+CORPUS_PATH="/corpus"
+HAVOC=20
 
 docker run -it --rm \
-    --name hopper-master \
+    --name hopper-master-readelf \
     --env TERM \
-    --env HOPPER_OUT \
-    --env HOPPER_LOG \
-    --env HOPPER_LOG_INTERVAL \
-    --volume $LOCAL_OUT:$HOPPER_OUT \
+    --env HOPPER_OUT=$HOPPER_OUT \
+    --env HOPPER_LOG=1 \
+    --env HOPPER_LOG_INTERVAL=10 \
+    --volume $(pwd)$HOPPER_OUT:$HOPPER_OUT \
+    --volume $(pwd)$CORPUS_PATH:$CORPUS_PATH \
     --publish 6969:6969 \
     hopper-readelf:latest \
-    bash -c "cd hopper && ./hopper-master -I ./examples/binutils/readelf/in -H=$1"
-
+    bash -c "hopper-master -I ${CORPUS_PATH} -H ${HAVOC}"

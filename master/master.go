@@ -2,6 +2,7 @@ package master
 
 import (
 	"container/heap"
+	"context"
 	"fmt"
 	"log"
 	"math"
@@ -12,7 +13,6 @@ import (
 	"path"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	c "github.com/Cybergenik/hopper/common"
@@ -21,6 +21,10 @@ import (
 )
 
 type Hopper struct {
+    // Campaign ctx
+    ctx context.Context
+	// Fuzz Campaign Corpus
+	corpus [][]byte
 	// Havoc level to use in mutator
 	havoc uint64
 	// seeds and Cov mutex
@@ -46,8 +50,6 @@ type Hopper struct {
 	port int
 	// Queue Channel to add new seeds based on energy
 	qChan chan c.FTaskID
-	// Keeps track of whether Hopper has been killed
-	dead int32
 	// Node IDs
 	nodes map[uint64]bool
 	//Stats
@@ -103,30 +105,32 @@ func (h *Hopper) Report() string {
 	)
 }
 
-func (h *Hopper) Kill() {
-	atomic.StoreInt32(&h.dead, 1)
-}
-
 func (h *Hopper) Stats() c.Stats {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	//fmt.Printf("FTask Q size: %v, Energy PQ size: %v ", len(h.seeds), h.pq.Len())
 	return c.Stats{
-		Its:           h.its,
-		Port:          h.port,
-		Havoc:         h.havoc,
-		CrashN:        h.crashN,
-		SeedsN:        h.seedsN,
-		MaxCov:        h.maxCov,
-		UniqueCrashes: len(h.crashes),
-		UniquePaths:   h.paths,
-		Nodes:         len(h.nodes),
+		Its:             h.its,
+		Port:            h.port,
+		Havoc:           h.havoc,
+		CrashN:          h.crashN,
+		SeedsN:          h.seedsN,
+		ReadyToFuzzQ:    len(h.qChan),
+		EnergyMutationQ: h.pq.Len(),
+		MaxCov:          h.maxCov,
+		UniqueCrashes:   len(h.crashes),
+		UniquePaths:     h.paths,
+		Nodes:           len(h.nodes),
 	}
 }
 
 func (h *Hopper) killed() bool {
-	z := atomic.LoadInt32(&h.dead)
-	return z == 1
+    select {
+    case <-h.ctx.Done():
+        return true
+    default:
+        return false
+    }
 }
 
 func (h *Hopper) GetFTask(args *c.FTaskArgs, task *c.FTask) error {
@@ -183,7 +187,6 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
 		}
 	}
 	//Free mutated seed
-	h.seeds[update.Id] = nil
 	delete(h.seeds, update.Id)
 	return nil
 }
@@ -191,7 +194,7 @@ func (h *Hopper) UpdateFTask(update *c.UpdateFTask, reply *c.UpdateReply) error 
 func (h *Hopper) mutGenerator() {
 	for !h.killed() {
 		availableCap := cap(h.qChan) - len(h.qChan)
-		if h.pq.Len() > 0 && availableCap >= (cap(h.qChan)/2) {
+		if h.pq.Len() > 0 && availableCap >= (cap(h.qChan)/3) {
 			//Baseline .01% of available queue capacity
 			baseline := float64(availableCap) * .001
 
@@ -207,6 +210,13 @@ func (h *Hopper) mutGenerator() {
 			}
 			// Avoid mem leak
 			energyItem = nil
+		} else if len(h.qChan) == 0 {
+			// Add gen 1 mutated corpus if exploration dies
+			for _, seed := range h.corpus {
+				for ok := h.addSeed(h.mutf(seed, h.havoc)); !ok; {
+					ok = h.addSeed(h.mutf(seed, h.havoc))
+				}
+			}
 		}
 	}
 }
@@ -286,8 +296,10 @@ func (h *Hopper) logger() {
 	}
 }
 
-func InitHopper(havocN uint64, port int, mutf func([]byte, uint64) []byte, corpus [][]byte) *Hopper {
+func InitHopper(ctx context.Context, havocN uint64, port int, mutf func([]byte, uint64) []byte, corpus [][]byte) *Hopper {
 	h := Hopper{
+		ctx:        ctx,
+		corpus:     corpus,
 		havoc:      havocN,
 		mutf:       mutf,
 		pq:         make(PriorityQueue, 0),
@@ -300,7 +312,6 @@ func InitHopper(havocN uint64, port int, mutf func([]byte, uint64) []byte, corpu
 		nodes:      make(map[uint64]bool),
 		//TODO: consider using circular buffer: container/ring
 		qChan:  make(chan c.FTaskID, 10_000),
-		dead:   0,
 		its:    0,
 		crashN: 0,
 		seedsN: 0,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -44,8 +45,8 @@ EXAMPLES:
 `)
 }
 
-func initTUI(master *m.Hopper) {
-	tui_model := tui.InitModel(master)
+func initTUI(ctx context.Context, cancel context.CancelFunc, master *m.Hopper) {
+	tui_model := tui.InitModel(ctx, cancel, master)
 	p := tea.NewProgram(tui_model)
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
@@ -85,16 +86,19 @@ func main() {
 	//Parse corpus seeds
 	corpus := readCorpus(*input)
 
+    ctx, cancel := context.WithCancel(context.Background()) 
+    defer cancel()
+
+    hopper := m.InitHopper(ctx, *havoc, *port, m.Mutator, corpus)
 	if *noTui {
-		h := m.InitHopper(*havoc, *port, m.Mutator, corpus)
 		for {
-			s := h.Stats()
-			fmt.Printf("Its: %d\n", s.Its)
-			time.Sleep(10 * time.Second)
+			s := hopper.Stats()
+			fmt.Printf("Stats: %+v\n", s)
+			time.Sleep(1 * time.Second)
 		}
 	}
 	//Init TUI loop
-	initTUI(m.InitHopper(*havoc, *port, m.Mutator, corpus))
+	initTUI(ctx, cancel, hopper)
 }
 
 func loadMutEngine(filename string) func([]byte, uint64) []byte {

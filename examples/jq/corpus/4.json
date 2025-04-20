@@ -1,0 +1,41 @@
+{
+  "user": {
+    "id": 3521,
+    "name": {
+      "first": "Alyssa",
+      "last": "O'Connor",
+      "aliases": ["aly", "A. O’C"]
+    },
+    "contact": {
+      "email": "alyssa.o@example.com",
+      "phones": ["+1-206-555-0198", null]
+    },
+    "addresses": [
+      {
+        "type": "home",
+        "line1": "1234 ↪️ Elm St.",
+        "city": "Seattle",
+        "zip": "98101"
+      },
+      {
+        "type": "work",
+        "line1": "",
+        "line2": null,
+        "city": "Redmond",
+        "zip": "98052"
+      }
+    ]
+  },
+  "roles": ["admin", "editor", "viewer"],
+  "metadata": {
+    "last_login": null,
+    "preferences": {
+      "theme": "dark",
+      "notifications": {
+        "email": true,
+        "sms": false,
+        "push": { "enabled": true, "sound": "chime" }
+      }
+    }
+  }
+}

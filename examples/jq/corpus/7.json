@@ -1,0 +1,9 @@
+{
+  "textSamples": [
+    "Line1\nLine2\tTabbed \"Quoted\" \\ Backslash",
+    "Emoji test: 😀 🤖 🚀",
+    "Unicode blocks: 日本語, العربية, Русский",
+    "\u0048\u0065\u006C\u006C\u006F"
+  ],
+  "notes": "Mixing raw and escaped Unicode"
+}

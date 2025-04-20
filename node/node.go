@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
 	"sync/atomic"
 
@@ -62,7 +61,7 @@ func (n *HopperNode) fuzz(t c.FTask) {
 	if n.raw {
 		seed = string(t.Seed)
 	} else if !n.stdin {
-		f, err := os.CreateTemp("", "hopper.*.in")
+		f, err := os.CreateTemp(os.TempDir(), "hopper.*.in")
 		defer os.Remove(f.Name())
 		if err != nil {
 			log.Fatal(err)
@@ -112,10 +111,6 @@ func (n *HopperNode) fuzz(t c.FTask) {
 		stdin.Write(t.Seed)
 	}
 	err := cmd.Wait()
-	sancov_file := fmt.Sprintf("%s.%v.sancov",
-		filepath.Base(n.target),
-		cmd.Process.Pid,
-	)
 	//Crash Detected
 	if err != nil {
 		if report := ParseAsan(errOut.String()); report != "" {
@@ -125,15 +120,16 @@ func (n *HopperNode) fuzz(t c.FTask) {
 		}
 	}
 	//Generate Coverage data
-	cov_s, ok := GetCoverage(sancov_file)
+	cov_s, ok := GetCoverage(cmd.Process.Pid)
 	update.Ok = ok
 	go func(N uint64) {
 		if update.Ok {
 			update.CovEdges = uint64(len(cov_s))
 			update.CovHash = c.BloomHash([]byte(strings.Join(cov_s, "")))
 		}
-		log := n.updateFTask(update)
-		if log {
+		persistCrash := n.updateFTask(update)
+		if persistCrash {
+            log.Println("Found crash, persisting...")
 			PersistCrash(t.Seed, errOut, N, n.outDir)
 		}
 	}(n.crashN)
@@ -143,18 +139,20 @@ func (n *HopperNode) taskGenerator(taskQ chan c.FTask) {
 	for !n.killed() {
 		ok, ftask := n.getFTask()
 		if !ok || ftask.Die {
-			atomic.StoreInt32(&n.dead, 1)
-			return
+            log.Fatal("Node dying... ")
 		}
 		taskQ <- ftask
 	}
 }
 
 func Node(id uint64, target string, args string, raw bool, env string, stdin bool, master string) {
-	out_dir := os.Getenv("HOPPER_OUT")
+	outDir := os.Getenv("HOPPER_OUT")
+	if sancovBin := os.Getenv("SANCOV_BIN"); sancovBin != "" {
+		SANCOV = sancovBin
+	}
 	var location string
-	if out_dir != "" {
-		location = path.Join(out_dir, fmt.Sprintf("Node%d", id))
+	if outDir != "" {
+		location = path.Join(outDir, fmt.Sprintf("Node%d", id))
 	} else {
 		location = fmt.Sprintf("Node%d", id)
 	}
@@ -175,7 +173,9 @@ func Node(id uint64, target string, args string, raw bool, env string, stdin boo
 		log.Fatal(err)
 	}
 	// Env vars
-	n.env = append(n.env, "ASAN_OPTIONS=coverage=1")
+	asanOpts := "ASAN_OPTIONS=coverage=1"
+	asanOpts += fmt.Sprintf(",coverage_dir=%s", os.TempDir())
+	n.env = append(n.env, asanOpts)
 	// Init TCP/IP connection to master
 	conn, err := rpc.DialHTTP("tcp", n.master)
 	if err != nil {
@@ -204,7 +204,7 @@ func Node(id uint64, target string, args string, raw bool, env string, stdin boo
 func (n *HopperNode) call(rpcname string, args interface{}, reply interface{}) bool {
 	err := n.conn.Call(rpcname, args, reply)
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 		return false
 	}
 

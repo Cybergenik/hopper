@@ -7,11 +7,12 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
 // Deb sid: "sancov-15"
-const SANCOV = "sancov"
+var SANCOV = "sancov"
 
 func ParseAsan(asan string) string {
 	asan_lines := strings.Split(asan, "\n")
@@ -41,21 +42,40 @@ func PersistCrash(seed []byte, asan bytes.Buffer, crashN uint64, outDir string) 
 	}
 }
 
-func GetCoverage(sancov_file string) ([]string, bool) {
-	cov_cmd := exec.Command(SANCOV,
-		"--print",
-		sancov_file,
+func GetCoverage(pid int) ([]string, bool) {
+	sancovGlob := filepath.Join(
+		os.TempDir(),
+		fmt.Sprintf("*.%v.sancov", pid),
 	)
-	var out bytes.Buffer
-	cov_cmd.Stdout = &out
-	if err := cov_cmd.Run(); err != nil {
+	sancovMatches, err := filepath.Glob(sancovGlob)
+	if err != nil {
+		log.Println(err)
 		return nil, false
 	}
-	go os.Remove(sancov_file)
-	// Coverage tree parsing
-	covered := strings.Split(strings.Trim(out.String(), "\n"), "\n")
-	for i, v := range covered {
-		covered[i] = v[2:]
+	allCoveredEdges := []string{}
+	for _, sancovFile := range sancovMatches {
+		defer func(f string) {
+			if err := os.Remove(f); err != nil {
+				log.Println(err)
+			}
+		}(sancovFile)
+		cov_cmd := exec.Command(SANCOV,
+			"--print",
+			sancovFile,
+		)
+		var out bytes.Buffer
+		cov_cmd.Stdout = &out
+		if err := cov_cmd.Run(); err != nil {
+			log.Println(err)
+			continue
+		}
+		// Coverage tree parsing
+		covered := strings.Split(strings.Trim(out.String(), "\n"), "\n")
+		for _, v := range covered {
+			if len(v) > 2 {
+				allCoveredEdges = append(allCoveredEdges, v[2:])
+			}
+		}
 	}
-	return covered, true
+	return allCoveredEdges, len(allCoveredEdges) > 0
 }

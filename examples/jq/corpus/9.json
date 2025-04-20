@@ -1,0 +1,31 @@
+{
+  "services": [
+    {
+      "name": "auth",
+      "enabled": true,
+      "endpoints": {
+        "/login": {
+          "methods": ["POST"],
+          "rate_limit": 1000
+        },
+        "/logout": {
+          "methods": ["GET", "POST"],
+          "rate_limit": null
+        }
+      }
+    },
+    {
+      "name": "data",
+      "enabled": false,
+      "settings": {
+        "cache": { "ttl": 3600, "strategy": "LRU" },
+        "replicas": [
+          { "host": "db1.example.com", "port": 27017 },
+          { "host": "db2.example.com", "port": 27017 }
+        ]
+      }
+    }
+  ],
+  "version": "2.7.0-beta",
+  "debug": false
+}
